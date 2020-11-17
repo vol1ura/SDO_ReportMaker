@@ -1,5 +1,3 @@
-from bs4 import BeautifulSoup # Install it if you need: pip3 install beatifulsoup
-#import csv                    # Install it if you need: pip3 install csv
 from datetime import datetime, timedelta
 import locale
 import re
@@ -73,8 +71,8 @@ def count_students(group_name, rd2): # на загруженной страни�
         j_dates.append([tmp, jd])
     if not flag: # дошли до конца диапазона дат, даты одинаковые, значит надо вести подсчёт в первых столбцах
         j_dates = j_dates[:rd2]
-    # теперь забираем айдишники дат по которым пойдёт подсчёт. количество айдишков = количеству пар с группой
-    print(len(j_dates))
+    # теперь забираем айдишники дат по которым пойдёт подсчёт. количество айдишков >= количеству пар с группой, может быть больше, но не меньше
+    print('num of id =', len(j_dates))
     rd7 = []
     for i in range(rd2):
         print(j_dates[i - rd2][0])
@@ -88,7 +86,7 @@ def count_students(group_name, rd2): # на загруженной страни�
     return rd7
 
 opts = Options()  
-#opts.add_argument("--headless")
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 print('Driver is starting now .........................................................')
 print("Please wait, don't close windows! ..............................................")
@@ -117,14 +115,12 @@ driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a/spa
 #main_page = driver.current_window_handle
 print('OK! Timetable is opened .....................................................[+]')
 print('Parsing......................................................................[+]')
-soup = BeautifulSoup(driver.page_source, 'lxml')
-pairs = soup.find('tbody').find_all('tr')
-#pairs = driver.find_elements_by_class_name("lesson")
+pairs = driver.find_elements_by_class_name("tt-row")
 tt_row = 0    # счётчик строк в таблице расписания
 pair_num = 0  # счётчик пар - номер пары по счёту в этот день = числу видеофайлов, которые будут загружаться - сделать проверку!!!!
 report_data = [] # массив данных:
-for pair in pairs[1:]:
-    pair_cells = pair.find_all('td') # распарсиваем строчку в расписании на отдельные ячейки
+for pair in pairs:
+    pair_cells = pair.find_elements_by_tag_name('td') # распарсиваем строчку в расписании на отдельные ячейки
     if date_str in pair_cells[2].text.strip(): # заданная дата в ячейке -> надо заполнить отчёт
         # +собираем данные для отчёта ++++++++++++++:
         #0 tt_row, номер пары, пар с группой, 3-группа, тип пары, 5-время начала, время окончания, 7-посещения, 8-ссыль на журнал, 9-новости
@@ -133,7 +129,7 @@ for pair in pairs[1:]:
         lesson_type = pair_cells[4].text.strip() # тип занятия
         #xpath_rep_button = '/html/body/div[1]/div[2]/div[2]/div[2]/table/tbody/tr[' + str(tt_row + 2) + ']/td[9]/button/span' # кнопка отчёта - она пока тут не используется!!!!
         p = re.compile(r'\d+')
-        hmhm = p.findall(pair_cells[0].text.strip()) # --------- soup !!!
+        hmhm = p.findall(pair_cells[0].text.strip())
         lesson_time = ['', ''] # время пары
         try:
             for i in range(2):
@@ -153,33 +149,25 @@ for pair in pairs[1:]:
         # пишем все данные в список и добавляем список в конец массива report_data:
         report_data.append([tt_row, pair_num, group_num, group, lesson_type, lesson_time[0], lesson_time[1], [], '', ''])
     tt_row += 1
-  
+
 # Цикл:
 # заходим на страницу с курсами СДО, парсим ссылки на ПОСЕЩЕНИЯ + КУРС
 mycourses = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[2]/a').get_attribute('href') ### ссылка на страницу Мои курсы - нужна ли она???
 print('Script working. Please, wait ...................................................')
 driver.get(mycourses)
 mymes('Loading data', 5)
-#soup = BeautifulSoup(driver.page_source, 'lxml')  --- дальше не используем Прекрасный Суп. Надо обойтись без него и раньше
 for les_data in report_data:
     #находим группу и парсим ссылку на страничку с посещениями
-    i = 3
-    while i < 200: # переделай цикл!!!!!!!!!!!!!!!
-        xpath = '/html/body/div[1]/div[2]/div[2]/div[2]/div['+ str(i) + ']/div/div/div/div/table/tbody/tr'
-        group = driver.find_element_by_xpath(xpath + '/td[2]/div[5]/p').text # Мои курсы - и-тый курс - группы в курсе - мы перебираем и
+    for lesson in driver.find_elements_by_class_name("lesson_table"):
+        group = lesson.find_elements_by_tag_name('p')[5].text # Мои курсы - группы в курсе - мы перебираем и
         if les_data[3] in group: # проверяем, что группа тут, тогда будем искасть в боковом фрейме ссылку на журнал посещений
-            # ссылка на страничку курса - не нужна!!! Ссылку на страничку новости можно получить из журнала группы!
-            #course_link = driver.find_element_by_xpath(xpath + '/td[2]/div[1]/a').get_attribute('href')
             # поиск ссылки на lesson_type журнал
-            j = 1
-            while j < 20: # переделать цикл - делать перебором по списку find_elements !!!!!
-                link_elem = driver.find_element_by_xpath(xpath + '/td[4]/div/div[1]/ul/li[' + str(j) + ']/div[3]/a')
+            for items in lesson.find_elements_by_class_name("hm-subject-list-item-description-lesson-title"):
+                link_elem = items.find_element_by_tag_name('a')
                 if les_data[4][:6] in link_elem.text: # если тип занятия совпадает
                     les_data[8] = link_elem.get_attribute('href') # сохраняем ссылку на журнал посещений
                     break # нашли ссылку, сохранили и вышли из цикла поиска
-                j += 1
             break # выходим из цикла поиска ссылок для группы, переходим к другой группе
-        i += 1
 # переходим в посещение лекций или семинаров или лабораторных,
 flag = False # флаг для пропуска обработанных групп
 for les_data in report_data:
@@ -202,20 +190,16 @@ for lesson in report_data:
 
 #driver.get('https://sdo.rgsu.net/journal/laboratory/extended/lesson_id/382820/subject_id/45608') ## удалить строчку после отладки журнала посещений
 
-# report_data[][7] - количество посещений - должен быть массив размером в количество пар с группой
-# report_data[][2] - количество пар с этой группой - для отладки введу переменную:
-#rd2 = 2
-
-
-    
-
-    
+   
 
 
 
-#f = open('rgsu.html', 'w')
-#f.write(html)
-#f.close()
+f = open('report.txt', 'w')
+f.write('This day you have next lessons\n')
+f.write('N\ttime time\tlesson_type\tgroup\t students\n')
+for lesson in report_data:
+    f.write(str(lesson[1])+'\t'+lesson[5]+' '+lesson[6]+'\t'+lesson[3]+'\t'+lesson[4]+'\t '+str(lesson[7])+'\n')
+f.close()
 
-#driver.quit()
+driver.quit()
 print("Driver Turned Off")
