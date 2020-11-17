@@ -15,7 +15,7 @@ locale.setlocale(locale.LC_ALL, "")
 try:
     f = open('settings.txt', encoding='utf8')
     try:
-        teacher = '+'.join(f.readline().strip().split(' '))
+        teacher = '+'.join(f.readline().strip().split(' ')) # not used parameter!!!!
         f_date = list(map(int, f.readline().strip().split('.')))
         date = datetime(f_date[2], f_date[1], f_date[0], 23, 59, 59)
         date_str = date.strftime("%d.%m.%y")
@@ -119,7 +119,7 @@ print('OK! Timetable is opened .................................................
 print('Parsing......................................................................[+]')
 soup = BeautifulSoup(driver.page_source, 'lxml')
 pairs = soup.find('tbody').find_all('tr')
-pairs = driver.find_elements_by_class_name("lesson")
+#pairs = driver.find_elements_by_class_name("lesson")
 tt_row = 0    # счётчик строк в таблице расписания
 pair_num = 0  # счётчик пар - номер пары по счёту в этот день = числу видеофайлов, которые будут загружаться - сделать проверку!!!!
 report_data = [] # массив данных:
