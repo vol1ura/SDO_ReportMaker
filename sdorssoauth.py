@@ -1,34 +1,31 @@
 from datetime import datetime, timedelta
-import locale
+#import locale
 import re
-
 import sys, time
 from time import sleep
 
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+
 from selenium.webdriver.firefox.options import Options
 #from selenium.webdriver.chrome.options import Options # for Chrome browser
 
-locale.setlocale(locale.LC_ALL, "")
+#locale.setlocale(locale.LC_ALL, "")
+
 try:
-    f = open('settings.txt', encoding='utf8')
-    try:
-        teacher = '+'.join(f.readline().strip().split(' ')) # not used parameter!!!!
-        f_date = list(map(int, f.readline().strip().split('.')))
-        date = datetime(f_date[2], f_date[1], f_date[0], 23, 59, 59)
-        date_str = date.strftime("%d.%m.%y")
-        print('Date of report:', date_str)
-        login = f.readline().strip()
-        password = f.readline().strip()
-    except Exception as e:
-        print(e)
-        print('Error!!! Check correctness of data and template in settings.txt!')
-    finally:
-        f.close()
+    with open('settings.txt', encoding='utf8') as f:
+        settings = f.readlines()
 except(IOError, OSError) as e:
     print(e)
     print()
     sys.exit('Error when reading settings.txt !!! Check also file encoding.')
+
+f_date = list(map(int, settings[0].strip().split('.')))
+date = datetime(f_date[2], f_date[1], f_date[0], 23, 59, 59)
+date_str = date.strftime("%d.%m.%y")
+print('Date of report:', date_str)
+login = settings[1].strip()
+password = settings[2].strip()
 
 date_wd = datetime.now()
 while date_wd.isoweekday() != 1:
@@ -86,7 +83,7 @@ def count_students(group_name, rd2): # на загруженной страни�
     return rd7
 
 opts = Options()  
-opts.add_argument("--headless")
+#opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 print('Driver is starting now .........................................................')
 print("Please wait, don't close windows! ..............................................")
@@ -106,11 +103,14 @@ mymes('Entering login and password', 1)
 driver.find_element_by_id('login').send_keys(login) 
 driver.find_element_by_id('password').send_keys(password)  
 driver.find_element_by_id('submit').click()
-mymes('Authorization on [sdo.rgsu.net]. Please, wait', 3)
+mymes('Authorization on [sdo.rgsu.net]. Please, wait', 4)
 driver.find_element_by_xpath('/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]').click()
-mymes('Login on [sdo.rgsu.net]', 3)
-
-
+mymes('Login on [sdo.rgsu.net]', 2)
+driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
+driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
+driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
+driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
+driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
 driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a/span').click()
 #main_page = driver.current_window_handle
 print('OK! Timetable is opened .....................................................[+]')
@@ -123,7 +123,7 @@ for pair in pairs:
     pair_cells = pair.find_elements_by_tag_name('td') # распарсиваем строчку в расписании на отдельные ячейки
     if date_str in pair_cells[2].text.strip(): # заданная дата в ячейке -> надо заполнить отчёт
         # +собираем данные для отчёта ++++++++++++++:
-        #0 tt_row, номер пары, пар с группой, 3-группа, тип пары, 5-время начала, время окончания, 7-посещения, 8-ссыль на журнал, 9-новости
+        #0 tt_row, номер пары, пар с группой, 3-группа, тип пары, 5-время начала, время окончания, 7-посещения, 8-ссыль на журнал, 9-newspage, 10-videolink, 11 - newslink
         group = pair_cells[3].text.strip() # группа
         group_num = 1 # счётчик пар с конкретной группой - надо делать проверку текущего массива по этому индексу и инкрементить индекс
         lesson_type = pair_cells[4].text.strip() # тип занятия
@@ -147,14 +147,12 @@ for pair in pairs:
                 rep[2] += 1
                 group_num = rep[2]
         # пишем все данные в список и добавляем список в конец массива report_data:
-        report_data.append([tt_row, pair_num, group_num, group, lesson_type, lesson_time[0], lesson_time[1], [], '', ''])
+        report_data.append([tt_row, pair_num, group_num, group, lesson_type, lesson_time[0], lesson_time[1], [], '', '', '', ''])
     tt_row += 1
 
-# Цикл:
 # заходим на страницу с курсами СДО, парсим ссылки на ПОСЕЩЕНИЯ + КУРС
-mycourses = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[2]/a').get_attribute('href') ### ссылка на страницу Мои курсы - нужна ли она???
 print('Script working. Please, wait ...................................................')
-driver.get(mycourses)
+driver.get(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[2]/a').get_attribute('href'))
 mymes('Loading data', 5)
 for les_data in report_data:
     #находим группу и парсим ссылку на страничку с посещениями
@@ -184,22 +182,58 @@ for les_data in report_data:
                 les_data1[7] = les_data[7]
                 les_data1[9] = les_data[9]
 
+#les_data = ['tt_row', 1, 3, 'group', 'lesson_type', 'lesson_time[0]', 'lesson_time[1]', [], '', '', 'http://google.com/', '']
+#
+# loading video files on sdo cloud
+#
+for lesson in report_data:
+    lesson[10] = settings[lesson[1] + 2].strip()
+
+
+for les_data in report_data:
+    if les_data[11] == '': # если ещё не сделали новости и не записали ссылку на новость, то:
+        driver.get(les_data[9])
+        mymes('Loading news page', 2)
+        driver.find_element_by_partial_link_text('Создать новость').click()
+        mymes('Loading news form', 1)
+        announce = 'Видеоматериалы занятия от ' + date.strftime("%d.%m.%Y") + ' с группой ' + les_data[3]
+        news_text = '<p>Занятие от ' + date.strftime("%d.%m.%Y") + ' г.:</p><ul>'
+        for les_data1 in report_data:
+            if les_data[3] == les_data1[3]:
+                news_text += '<li><a href="' + les_data1[10] + '">Запись трасляции занятия</a>&nbsp;(' + les_data1[4] + ',&nbsp;' + les_data1[5] + ' - ' + les_data1[6] + ')'
+        news_text += '</ul>'
+        driver.find_element_by_id('announce').send_keys(announce)
+        driver.find_element_by_id('message_code').click()
+        mymes('Loading form', 1)
+        driver.switch_to.frame("mce_13_ifr")
+        driver.find_element_by_xpath('//*[@id="htmlSource"]').send_keys(news_text)
+        driver.find_element_by_id('insert').click()
+        driver.switch_to.default_content()
+        driver.find_element_by_id('submit').click()
+        les_data[11] = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/div[3]/div/div/div[1]/div[2]/a').get_attribute('href')
+        print(les_data[11])
+        if les_data[2] > 1:
+            for les_data1 in report_data:
+                if les_data[3] == les_data1[3] and les_data1[11] == '':
+                    les_data1[11] = les_data[11]
+        
+
 print('This day you have next lessons:')
 for lesson in report_data:
+    lesson[10] = settings[lesson[1] + 2].strip()
     print(lesson)
 
-#driver.get('https://sdo.rgsu.net/journal/laboratory/extended/lesson_id/382820/subject_id/45608') ## удалить строчку после отладки журнала посещений
+
 
    
 
-
-
 f = open('report.txt', 'w')
-f.write('This day you have next lessons\n')
-f.write('N\ttime time\tlesson_type\tgroup\t students\n')
+f.write('This day you have next lessons\n\n')
+f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
 for lesson in report_data:
-    f.write(str(lesson[1])+'\t'+lesson[5]+' '+lesson[6]+'\t'+lesson[3]+'\t'+lesson[4]+'\t '+str(lesson[7])+'\n')
+    f.write(str(lesson[1])+'\t'+lesson[5]+' '+lesson[6]+'\t'+lesson[3]+'\t'+lesson[4]+'\t '+str(lesson[7])+' '+lesson[10]+' '+lesson[11]+'\n\n')
 f.close()
-
+input('press any key...')
 driver.quit()
-print("Driver Turned Off")
+print("Driver Turned Off. All work is done! Congratulations!!!!!!!!!")
+
