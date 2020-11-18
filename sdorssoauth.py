@@ -85,6 +85,7 @@ def count_students(group_name, rd2): # на загруженной страни�
 opts = Options()  
 #opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
+#opts.page_load_strategy = 'normal'
 print('Driver is starting now .........................................................')
 print("Please wait, don't close windows! ..............................................")
 # Download driver on https://github.com/mozilla/geckodriver/releases
@@ -106,13 +107,14 @@ driver.find_element_by_id('submit').click()
 mymes('Authorization on [sdo.rgsu.net]. Please, wait', 4)
 driver.find_element_by_xpath('/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]').click()
 mymes('Login on [sdo.rgsu.net]', 2)
-driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
-driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
-driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
-driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
-driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.SUBTRACT)
+
+#driver.execute_script("document.body.style.zoom='50%';")
+#c=driver.find_element_by_tag_name("body")
+#c.send_keys(Keys.LEFT_CONTROL+Keys.SUBTRACT)
+#webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.MINUS).perform()
+#webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.VK_MINUS).perform()
 driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a/span').click()
-#main_page = driver.current_window_handle
+
 print('OK! Timetable is opened .....................................................[+]')
 print('Parsing......................................................................[+]')
 pairs = driver.find_elements_by_class_name("tt-row")
@@ -189,6 +191,8 @@ for les_data in report_data:
 for lesson in report_data:
     lesson[10] = settings[lesson[1] + 2].strip()
 
+driver.maximize_window()
+
 
 for les_data in report_data:
     if les_data[11] == '': # если ещё не сделали новости и не записали ссылку на новость, то:
@@ -196,6 +200,11 @@ for les_data in report_data:
         mymes('Loading news page', 2)
         driver.find_element_by_partial_link_text('Создать новость').click()
         mymes('Loading news form', 1)
+        #webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys("-").perform()
+        #webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys("-").perform()
+        #driver.execute_script('document.body.style.MozTransform = "scale(0.5)";')
+        #driver.execute_script('document.body.style.MozTransformOrigin = "0 0";')
+        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]')
         announce = 'Видеоматериалы занятия от ' + date.strftime("%d.%m.%Y") + ' с группой ' + les_data[3]
         news_text = '<p>Занятие от ' + date.strftime("%d.%m.%Y") + ' г.:</p><ul>'
         for les_data1 in report_data:
@@ -218,6 +227,7 @@ for les_data in report_data:
                     les_data1[11] = les_data[11]
         
 
+
 print('This day you have next lessons:')
 for lesson in report_data:
     lesson[10] = settings[lesson[1] + 2].strip()
@@ -233,6 +243,7 @@ f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t L
 for lesson in report_data:
     f.write(str(lesson[1])+'\t'+lesson[5]+' '+lesson[6]+'\t'+lesson[3]+'\t'+lesson[4]+'\t '+str(lesson[7])+' '+lesson[10]+' '+lesson[11]+'\n\n')
 f.close()
+
 input('press any key...')
 driver.quit()
 print("Driver Turned Off. All work is done! Congratulations!!!!!!!!!")
