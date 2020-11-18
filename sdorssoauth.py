@@ -5,7 +5,10 @@ import sys, time
 from time import sleep
 
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from selenium.webdriver.firefox.options import Options
 #from selenium.webdriver.chrome.options import Options # for Chrome browser
@@ -83,7 +86,7 @@ def count_students(group_name, rd2): # на загруженной страни�
     return rd7
 
 opts = Options()  
-opts.add_argument("--headless")
+#opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 #opts.page_load_strategy = 'normal'
 print('Driver is starting now .........................................................')
@@ -91,29 +94,35 @@ print("Please wait, don't close windows! .......................................
 # Download driver on https://github.com/mozilla/geckodriver/releases
 driver = webdriver.Firefox(options=opts, executable_path=r'geckodriver.exe')
 
+#driver.implicitly_wait(10) # seconds
+wait = WebDriverWait(driver, 20)
 # Download Chrome driver if you use Google Chrome
 # https://sites.google.com/a/chromium.org/chromedriver/home
 #driver = webdriver.Chrome(chrome_options=opts, executable_path=r'chromedriver.exe')  
 
 print('Headless Mode is initialized ................................................[+]')
 driver.get('https://sdo.rgsu.net/')
-mymes('Loading site [sdo.rgsu.net]. Please, wait', 1)
-driver.find_element_by_class_name('login').click()
+get_link = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'login')))
+get_link.click()
+#mymes('Loading site [sdo.rgsu.net]. Please, wait', 1)
+#driver.find_element_by_class_name('login').click()
 mymes('Opening login form', 1)
 mymes('Entering login and password', 1)
 driver.find_element_by_id('login').send_keys(login) 
 driver.find_element_by_id('password').send_keys(password)  
-driver.find_element_by_id('submit').click()
-mymes('Authorization on [sdo.rgsu.net]. Please, wait', 4)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]').click()
-mymes('Login on [sdo.rgsu.net]', 2)
+get_link = wait.until(EC.element_to_be_clickable((By.ID, 'submit')))
+get_link.click()
+#driver.find_element_by_id('submit')
+#mymes('Authorization on [sdo.rgsu.net]. Please, wait', 10)
 
-#driver.execute_script("document.body.style.zoom='50%';")
-#c=driver.find_element_by_tag_name("body")
-#c.send_keys(Keys.LEFT_CONTROL+Keys.SUBTRACT)
-#webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.MINUS).perform()
-#webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.VK_MINUS).perform()
-driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a/span').click()
+#driver.find_element_by_xpath('/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]').click()
+get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]')))
+get_link.click()
+#mymes('Login on [sdo.rgsu.net]', 2)
+
+driver.maximize_window()
+
+driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a').click()
 
 print('OK! Timetable is opened .....................................................[+]')
 print('Parsing......................................................................[+]')
@@ -189,9 +198,8 @@ for les_data in report_data:
 # loading video files on sdo cloud
 #
 for lesson in report_data:
-    lesson[10] = settings[lesson[1] + 2].strip()
-
-driver.maximize_window()
+    #print(lesson)
+    lesson[10] = settings[lesson[1] + 3].strip()
 
 
 for les_data in report_data:
@@ -199,44 +207,54 @@ for les_data in report_data:
         driver.get(les_data[9])
         mymes('Loading news page', 2)
         driver.find_element_by_partial_link_text('Создать новость').click()
-        mymes('Loading news form', 1)
+        mymes('Loading news form', 2)
         driver.find_element_by_tag_name("html").send_keys(Keys.PAGE_DOWN)
-        #webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys("-").perform()
-        #webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys("-").perform()
-        #driver.execute_script('document.body.style.MozTransform = "scale(0.5)";')
-        #driver.execute_script('document.body.style.MozTransformOrigin = "0 0";')
-        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]')
         announce = 'Видеоматериалы занятия от ' + date.strftime("%d.%m.%Y") + ' с группой ' + les_data[3]
         news_text = '<p>Занятие от ' + date.strftime("%d.%m.%Y") + ' г.:</p><ul>'
         for les_data1 in report_data:
             if les_data[3] == les_data1[3]:
                 news_text += '<li><a href="' + les_data1[10] + '">Запись трасляции занятия</a>&nbsp;(' + les_data1[4] + ',&nbsp;' + les_data1[5] + ' - ' + les_data1[6] + ')'
         news_text += '</ul>'
-        driver.find_element_by_id('announce').send_keys(announce)
-        driver.find_element_by_id('message_code').click()
+        get_link = wait.until(EC.presence_of_element_located((By.ID, 'announce')))
+        get_link.send_keys(announce)
+        get_link = wait.until(EC.presence_of_element_located((By.ID, 'message_code')))
+        get_link.click()
         mymes('Loading form', 1)
         driver.switch_to.frame("mce_13_ifr")
         driver.find_element_by_xpath('//*[@id="htmlSource"]').send_keys(news_text)
         driver.find_element_by_id('insert').click()
         driver.switch_to.default_content()
         driver.find_element_by_id('submit').click()
-        les_data[11] = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/div[3]/div/div/div[1]/div[2]/a').get_attribute('href')
+        get_link = wait.until(EC.presence_of_element_located((By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/div[3]/div/div/div[1]/div[2]/a')))
+        mymes('Saving news', 1)
+        les_data[11] = get_link.get_attribute('href')
         print(les_data[11])
         if les_data[2] > 1:
             for les_data1 in report_data:
                 if les_data[3] == les_data1[3] and les_data1[11] == '':
                     les_data1[11] = les_data[11]
-        
+
+#les_data = [14, 6, 2, 'ДИЗ-Б-01-В-2020-2', 'лабораторная работа', '22:25', '23:55', [1, 1], 'https://sdo.rgsu.net/lesson/execute/index/lesson_id/442013/subject_id/52821', 'https://sdo.rgsu.net/news/index/index/subject_id/52821/subject/subject', 'https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC', 'https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/52821/news_id/167587']
+
+# Open timetable page to write report        
+get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
+get_link.click()
+
+for les_data in report_data:
+    pairs = driver.find_elements_by_class_name("tt-row")
+    report_button = pairs[les_data[0]].find_element_by_tag_name('button')
+    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', report_button)
+    mymes('Scrolling page', 2)
+    report_button.click()
+    driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[1]/input').send_keys(Keys.BACKSPACE + str(les_data[7][0]))
+    driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[2]/input').send_keys(Keys.BACKSPACE + les_data[10])
+    driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[3]/input').send_keys(Keys.BACKSPACE + les_data[11])
+    driver.find_element_by_xpath('/html/body/div[3]/div[3]/div/button[1]/span').click()
 
 
 print('This day you have next lessons:')
 for lesson in report_data:
-    lesson[10] = settings[lesson[1] + 2].strip()
     print(lesson)
-
-
-
-   
 
 f = open('report.txt', 'w')
 f.write('This day you have next lessons\n\n')

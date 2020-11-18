@@ -1,5 +1,6 @@
 *.csv
 *.html
+*.tmp
 settings.txt
 geckodriver*
 ### Python ###
