@@ -83,7 +83,7 @@ def count_students(group_name, rd2): # на загруженной страни�
     return rd7
 
 opts = Options()  
-#opts.add_argument("--headless")
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 #opts.page_load_strategy = 'normal'
 print('Driver is starting now .........................................................')
@@ -200,6 +200,7 @@ for les_data in report_data:
         mymes('Loading news page', 2)
         driver.find_element_by_partial_link_text('Создать новость').click()
         mymes('Loading news form', 1)
+        driver.find_element_by_tag_name("html").send_keys(Keys.PAGE_DOWN)
         #webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys("-").perform()
         #webdriver.ActionChains(driver).key_down(Keys.CONTROL).send_keys("-").perform()
         #driver.execute_script('document.body.style.MozTransform = "scale(0.5)";')
