@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta
-#import locale
-import re
 import sys, time
 from time import sleep
 
@@ -12,8 +10,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from selenium.webdriver.firefox.options import Options
 #from selenium.webdriver.chrome.options import Options # for Chrome browser
-
-#locale.setlocale(locale.LC_ALL, "")
 
 try:
     with open('settings.txt', encoding='utf8') as f:
@@ -44,45 +40,44 @@ def mymes(mes, d):
         sleep(d / k) 
     print('.[+]')
 
-def count_students(group_name, rd2): # на загруженной странице с посещаемостью подсчитываются посещения студентов группы в последних rd2 заполненных столбиках
+def count_students(group_name, rd2): # count students on downloaded attendance page, using last rd2 columns
     select_group = driver.find_element_by_xpath('//*[@id="groupname"]')
-    for list_item in select_group.find_elements_by_tag_name("option"): # перебираем элементы в выпадающем списке, ищем группу, с которой провели пары
-        if group_name in list_item.text: # если нашли эту группу, раскрываем журнал, находим последние заполненные даты и делаем в них подсчёт
-            select_group.click()                 # кликаем выпадающий список
-            list_item.click()                    # кликаем по нужной группе
+    for list_item in select_group.find_elements_by_tag_name("option"): # cycle throuh elements in drop-down list to find our group
+        if group_name in list_item.text: # if group is founded, open journal and counting attendance
+            select_group.click()                 # click dropdown list
+            list_item.click()                    # click group
             print(list_item.text)
             break
     driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/form[1]/div/div[2]/button').click() # filter button click
-    mymes('Loading data', 2)
+    #mymes('Loading data', 2)
     try:
-        driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[3]/div/a[3]/div').click() # all link click
-        mymes('Loading data', 2)
+        #driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[3]/div/a[3]/div').click()
+        get_link = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="marksheet-form-filters"]/div/div[3]/div/a[3]/div'))) # all link click
+        get_link.click()
+        #mymes('Loading data', 2)
     except:
-        print('Warning! There is no all link for ', group_name)
+        print('Check! There is no all link for', group_name)
     j_dates = []
     flag = False
-    for jd in driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/form[2]/table/thead/tr').find_elements_by_tag_name('th')[1:-2]:
+    element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/form[2]/table/thead/tr')))
+    for jd in element.find_elements_by_tag_name('th')[1:-2]:
         tmp = jd.find_element_by_class_name("date-caption").text.strip().split('.')
         tmp = datetime(int(tmp[2]), int(tmp[1]), int(tmp[0]))
-        if len(j_dates) != 0 and tmp < j_dates[-1][0]: # всё, дошли до последней заполненной даты
+        if len(j_dates) != 0 and tmp < j_dates[-1][0]: # ok, it is last date of checking
             break
-        if len(j_dates) != 0 and tmp > j_dates[-1][0]: # делаем проверку увеличения дат, т.е. журнал уже заполнялся
+        if len(j_dates) != 0 and tmp > j_dates[-1][0]: # if dates growing then journal not new
             flag = True
         j_dates.append([tmp, jd])
-    if not flag: # дошли до конца диапазона дат, даты одинаковые, значит надо вести подсчёт в первых столбцах
+    if not flag: # if we reach last date in period and all dates equals, then we need count since first columns
         j_dates = j_dates[:rd2]
-    # теперь забираем айдишники дат по которым пойдёт подсчёт. количество айдишков >= количеству пар с группой, может быть больше, но не меньше
-    print('num of id =', len(j_dates))
     rd7 = []
     for i in range(rd2):
-        print(j_dates[i - rd2][0])
-        id_th_day = j_dates[i - rd2][1].get_attribute('id')[7:]
+        id_th_day = j_dates[i - rd2][1].get_attribute('id')[7:] # take id of date to count cells by id
         count = 0
-        # и подсчитываем посещение данной пары
         for td in driver.find_elements_by_class_name('is_be_row_' + id_th_day):
             if td.find_element_by_tag_name('p').text.strip() == 'Был':
                 count += 1
-        rd7.append(count) # надо записать значение в 7th элемент таблицы данных как массив
+        rd7.append(count) # append attendance in array
     return rd7
 
 opts = Options()  
@@ -91,60 +86,56 @@ opts.add_argument('--ignore-certificate-errors')
 #opts.page_load_strategy = 'normal'
 print('Driver is starting now .........................................................')
 print("Please wait, don't close windows! ..............................................")
+
 # Download driver on https://github.com/mozilla/geckodriver/releases
 driver = webdriver.Firefox(options=opts, executable_path=r'geckodriver.exe')
 
-#driver.implicitly_wait(10) # seconds
-wait = WebDriverWait(driver, 20)
 # Download Chrome driver if you use Google Chrome
 # https://sites.google.com/a/chromium.org/chromedriver/home
 #driver = webdriver.Chrome(chrome_options=opts, executable_path=r'chromedriver.exe')  
+
+#driver.implicitly_wait(10) # seconds
+wait = WebDriverWait(driver, 20)
 
 print('Headless Mode is initialized ................................................[+]')
 driver.get('https://sdo.rgsu.net/')
 get_link = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'login')))
 get_link.click()
-#mymes('Loading site [sdo.rgsu.net]. Please, wait', 1)
-#driver.find_element_by_class_name('login').click()
 mymes('Opening login form', 1)
 mymes('Entering login and password', 1)
 driver.find_element_by_id('login').send_keys(login) 
 driver.find_element_by_id('password').send_keys(password)  
-get_link = wait.until(EC.element_to_be_clickable((By.ID, 'submit')))
+get_link = wait.until(EC.element_to_be_clickable((By.ID, 'submit'))) # submit authorization
 get_link.click()
-#driver.find_element_by_id('submit')
-#mymes('Authorization on [sdo.rgsu.net]. Please, wait', 10)
 
-#driver.find_element_by_xpath('/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]').click()
-get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]')))
+get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]'))) # tutor mode ON
 get_link.click()
-#mymes('Login on [sdo.rgsu.net]', 2)
 
 driver.maximize_window()
 
-driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a').click()
+get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a'))) # go to timetable and parse it
+get_link.click()
 
-print('OK! Timetable is opened .....................................................[+]')
-print('Parsing......................................................................[+]')
+mymes('Timetable is opening',2)
+print('Parsing.........................................................................')
 pairs = driver.find_elements_by_class_name("tt-row")
-tt_row = 0    # счётчик строк в таблице расписания
+tt_row = 0    # rows counter in time table
 pair_num = 0  # счётчик пар - номер пары по счёту в этот день = числу видеофайлов, которые будут загружаться - сделать проверку!!!!
-report_data = [] # массив данных:
+report_data = [] # array of data
 for pair in pairs:
     pair_cells = pair.find_elements_by_tag_name('td') # распарсиваем строчку в расписании на отдельные ячейки
     if date_str in pair_cells[2].text.strip(): # заданная дата в ячейке -> надо заполнить отчёт
-        # +собираем данные для отчёта ++++++++++++++:
-        #0 tt_row, номер пары, пар с группой, 3-группа, тип пары, 5-время начала, время окончания, 7-посещения, 8-ссыль на журнал, 9-newspage, 10-videolink, 11 - newslink
+        # переделать в словарь!!!
+        # +собираем данные для отчёта ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++:
+        #0-tt_row, номер пары, пар с группой, 3-группа, тип пары, 5-время начала, время окончания, 7-посещения, 8-ссыль на журнал, 9-newspage, 10-videolink, 11 - newslink
         group = pair_cells[3].text.strip() # группа
         group_num = 1 # счётчик пар с конкретной группой - надо делать проверку текущего массива по этому индексу и инкрементить индекс
         lesson_type = pair_cells[4].text.strip() # тип занятия
-        #xpath_rep_button = '/html/body/div[1]/div[2]/div[2]/div[2]/table/tbody/tr[' + str(tt_row + 2) + ']/td[9]/button/span' # кнопка отчёта - она пока тут не используется!!!!
-        p = re.compile(r'\d+')
-        hmhm = p.findall(pair_cells[0].text.strip())
-        lesson_time = ['', ''] # время пары
+        #p = re.compile(r'\d+')
+        #hmhm = p.findall(pair_cells[0].text.strip())
+        hmhm = pair_cells[0].text.strip()
         try:
-            for i in range(2):
-                lesson_time[i] += hmhm[2*i] + ':' + hmhm[1 + 2*i]
+            lesson_time = [hmhm[:5], hmhm[8:]] # время пары
         except:
             print('Bad time format: [ {} ]'.format(pair_cells[0].text.strip()))
             print('Check time for:', group, pair_cells[5].text.strip(), pair_cells[6].text.strip())
@@ -201,6 +192,7 @@ for lesson in report_data:
     #print(lesson)
     lesson[10] = settings[lesson[1] + 3].strip()
 
+#
 
 for les_data in report_data:
     if les_data[11] == '': # если ещё не сделали новости и не записали ссылку на новость, то:
@@ -239,7 +231,6 @@ for les_data in report_data:
 # Open timetable page to write report        
 get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
 get_link.click()
-
 for les_data in report_data:
     pairs = driver.find_elements_by_class_name("tt-row")
     report_button = pairs[les_data[0]].find_element_by_tag_name('button')
@@ -250,7 +241,6 @@ for les_data in report_data:
     driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[2]/input').send_keys(Keys.BACKSPACE + les_data[10])
     driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[3]/input').send_keys(Keys.BACKSPACE + les_data[11])
     driver.find_element_by_xpath('/html/body/div[3]/div[3]/div/button[1]/span').click()
-
 
 print('This day you have next lessons:')
 for lesson in report_data:
@@ -266,4 +256,3 @@ f.close()
 input('press any key...')
 driver.quit()
 print("Driver Turned Off. All work is done! Congratulations!!!!!!!!!")
-
