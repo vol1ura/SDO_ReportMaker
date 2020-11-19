@@ -78,7 +78,7 @@ def count_students(group_name, rd2): # count students on downloaded attendance p
     return rd7
 
 opts = Options()  
-#opts.add_argument("--headless")
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 #opts.page_load_strategy = 'normal'
 print('Driver is starting now .........................................................')
@@ -209,8 +209,8 @@ for les_data in report_data:
         driver.find_element_by_id('insert').click()
         driver.switch_to.default_content()
         driver.find_element_by_id('submit').click()
-        get_link = wait.until(EC.presence_of_element_located((By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/div[3]/div/div/div[1]/div[2]/a')))
         mymes('Saving news', 1)
+        get_link = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/div[3]/div/div/div[1]/div[2]/a')))
         les_data[11] = get_link.get_attribute('href')
         if les_data[2] > 1:
             for les_data1 in report_data:
