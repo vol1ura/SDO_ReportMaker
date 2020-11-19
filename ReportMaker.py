@@ -91,7 +91,7 @@ driver = webdriver.Firefox(options=opts, executable_path=r'geckodriver.exe')
 # https://sites.google.com/a/chromium.org/chromedriver/home
 #driver = webdriver.Chrome(chrome_options=opts, executable_path=r'chromedriver.exe')  
 
-#driver.implicitly_wait(10) # seconds
+#driver.implicitly_wait(10) # seconds - use carefully!
 wait = WebDriverWait(driver, 20)
 
 print('Headless Mode is initialized ................................................[+]')
@@ -117,7 +117,7 @@ mymes('Timetable is opening',2)
 print('Parsing.........................................................................')
 pairs = driver.find_elements_by_class_name("tt-row")
 tt_row = 0    # rows counter in time table
-pair_num = 0  # счётчик пар - номер пары по счёту в этот день = числу видеофайлов, которые будут загружаться - сделать проверку!!!!
+pair_num = 0  # pair counter - номер пары по счёту в этот день 
 report_data = [] # array of data
 for pair in pairs:
     pair_cells = pair.find_elements_by_tag_name('td') # распарсиваем строчку в расписании на отдельные ячейки
@@ -127,12 +127,10 @@ for pair in pairs:
         #0-tt_row, номер пары, пар с группой, 3-группа, тип пары, 5-время начала, время окончания, 7-посещения, 8-ссыль на журнал, 9-newspage, 10-videolink, 11 - newslink
         group = pair_cells[3].text.strip() # группа
         group_num = 1 # счётчик пар с конкретной группой - надо делать проверку текущего массива по этому индексу и инкрементить индекс
-        lesson_type = pair_cells[4].text.strip() # тип занятия
-        #p = re.compile(r'\d+')
-        #hmhm = p.findall(pair_cells[0].text.strip())
+        lesson_type = pair_cells[4].text.strip() # lesson type
         hmhm = pair_cells[0].text.strip()
         try:
-            lesson_time = [hmhm[:5], hmhm[8:]] # время пары
+            lesson_time = [hmhm[:5], hmhm[8:]] # time of lesson
         except:
             print('Bad time format: [ {} ]'.format(pair_cells[0].text.strip()))
             print('Check time for:', group, pair_cells[5].text.strip(), pair_cells[6].text.strip())
@@ -166,7 +164,6 @@ for les_data in report_data:
                     break # нашли ссылку, сохранили и вышли из цикла поиска
             break # выходим из цикла поиска ссылок для группы, переходим к другой группе
 # let's go to attendance page of current lesson type
-#flag = False # flag to skip handled group
 for les_data in report_data:
     if les_data[9] == '':       # no link to news page, therefore need to handle group
         driver.get(les_data[8]) # go to attendance page
