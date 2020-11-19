@@ -209,8 +209,8 @@ for les_data in report_data:
         driver.find_element_by_id('insert').click()
         driver.switch_to.default_content()
         driver.find_element_by_id('submit').click()
-        mymes('Saving news', 1)
-        get_link = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/div[3]/div/div/div[1]/div[2]/a')))
+        mymes('Saving news', 1) # This timeout is no needed and can be commented or deleted!
+        get_link = wait.until(EC.presence_of_element_located((By.XPATH,'//a[contains(text(), "Видеоматериалы занятия от")]')))
         les_data[11] = get_link.get_attribute('href')
         if les_data[2] > 1:
             for les_data1 in report_data:
