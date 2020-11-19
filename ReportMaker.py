@@ -49,14 +49,11 @@ def count_students(group_name, rd2): # count students on downloaded attendance p
             print(list_item.text)
             break
     driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/form[1]/div/div[2]/button').click() # filter button click
-    #mymes('Loading data', 2)
     try:
-        #driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[3]/div/a[3]/div').click()
         get_link = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="marksheet-form-filters"]/div/div[3]/div/a[3]/div'))) # all link click
         get_link.click()
-        #mymes('Loading data', 2)
     except:
-        print('Check! There is no all link for', group_name)
+        print('Check attendance page! There is no link "all" for', group_name)
     j_dates = []
     flag = False
     element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/form[2]/table/thead/tr')))
@@ -81,7 +78,7 @@ def count_students(group_name, rd2): # count students on downloaded attendance p
     return rd7
 
 opts = Options()  
-#opts.add_argument("--headless")
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 #opts.page_load_strategy = 'normal'
 print('Driver is starting now .........................................................')
@@ -168,16 +165,16 @@ for les_data in report_data:
                     les_data[8] = link_elem.get_attribute('href') # сохраняем ссылку на журнал посещений
                     break # нашли ссылку, сохранили и вышли из цикла поиска
             break # выходим из цикла поиска ссылок для группы, переходим к другой группе
-# переходим в посещение лекций или семинаров или лабораторных,
-flag = False # флаг для пропуска обработанных групп
+# let's go to attendance page of current lesson type
+#flag = False # flag to skip handled group
 for les_data in report_data:
-    if les_data[9] == '': # если ещё не заполнили, открываем страничку с посещениями и считаем
-        driver.get(les_data[8]) 
+    if les_data[9] == '':       # no link to news page, therefore need to handle group
+        driver.get(les_data[8]) # go to attendance page
         mymes('Loading journal', 1)
         les_data[9] = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[2]/div/div[5]/div/ul/li[1]/ul/li[1]/a').get_attribute('href') # News link
-        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]').click() # click meny panel
+        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]').click() # close meny panel
         les_data[7] = count_students(les_data[3], les_data[2])
-        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]').click() # click meny panel
+        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]').click() # open meny panel
     if les_data[2] > 1:
         for les_data1 in report_data:
             if les_data[3] == les_data1[3] and les_data1[9] == '':
@@ -187,12 +184,11 @@ for les_data in report_data:
 #les_data = ['tt_row', 1, 3, 'group', 'lesson_type', 'lesson_time[0]', 'lesson_time[1]', [], '', '', 'http://google.com/', '']
 #
 # loading video files on sdo cloud
-#
+# пока просто заглушка - читаем ссылки на файлы в облаке из файла
 for lesson in report_data:
     #print(lesson)
     lesson[10] = settings[lesson[1] + 3].strip()
-
-#
+# here must be block for uploading video files to cloud.rssu.net
 
 for les_data in report_data:
     if les_data[11] == '': # если ещё не сделали новости и не записали ссылку на новость, то:
@@ -211,7 +207,7 @@ for les_data in report_data:
         get_link.send_keys(announce)
         get_link = wait.until(EC.presence_of_element_located((By.ID, 'message_code')))
         get_link.click()
-        mymes('Loading form', 1)
+        mymes('Loading edit form', 1)
         driver.switch_to.frame("mce_13_ifr")
         driver.find_element_by_xpath('//*[@id="htmlSource"]').send_keys(news_text)
         driver.find_element_by_id('insert').click()
@@ -220,13 +216,10 @@ for les_data in report_data:
         get_link = wait.until(EC.presence_of_element_located((By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/div[3]/div/div/div[1]/div[2]/a')))
         mymes('Saving news', 1)
         les_data[11] = get_link.get_attribute('href')
-        print(les_data[11])
         if les_data[2] > 1:
             for les_data1 in report_data:
                 if les_data[3] == les_data1[3] and les_data1[11] == '':
                     les_data1[11] = les_data[11]
-
-#les_data = [14, 6, 2, 'ДИЗ-Б-01-В-2020-2', 'лабораторная работа', '22:25', '23:55', [1, 1], 'https://sdo.rgsu.net/lesson/execute/index/lesson_id/442013/subject_id/52821', 'https://sdo.rgsu.net/news/index/index/subject_id/52821/subject/subject', 'https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC', 'https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/52821/news_id/167587']
 
 # Open timetable page to write report        
 get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
@@ -242,9 +235,11 @@ for les_data in report_data:
     driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[3]/input').send_keys(Keys.BACKSPACE + les_data[11])
     driver.find_element_by_xpath('/html/body/div[3]/div[3]/div/button[1]/span').click()
 
+'''
 print('This day you have next lessons:')
 for lesson in report_data:
     print(lesson)
+'''
 
 f = open('report.txt', 'w')
 f.write('This day you have next lessons\n\n')
@@ -253,6 +248,7 @@ for lesson in report_data:
     f.write(str(lesson[1])+'\t'+lesson[5]+' '+lesson[6]+'\t'+lesson[3]+'\t'+lesson[4]+'\t '+str(lesson[7])+' '+lesson[10]+' '+lesson[11]+'\n\n')
 f.close()
 
-input('press any key...')
+print("All work is done! Congratulations!!!!!!!!!")
+#input('press any key...')
 driver.quit()
-print("Driver Turned Off. All work is done! Congratulations!!!!!!!!!")
+print("Driver Turned Off")

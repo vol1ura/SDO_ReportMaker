@@ -2,15 +2,15 @@ This day you have next lessons
 
 N	time time	lesson_type	group	 students	 Link in cloud.sdo.net	 Link in news
 
-1	08:15 09:45	ПСД-С-2-Д-2020-1	лабораторная работа	 [15, 15] https://cloud.rgsu.net/s/AQ5NzqMCzDRb4KM https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50457/news_id/167749
+1	08:15 09:45	ПСД-С-2-Д-2020-1	лабораторная работа	 [15, 15] https://cloud.rgsu.net/s/AQ5NzqMCzDRb4KM https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50457/news_id/167824
 
-2	09:55 11:25	ПСД-С-2-Д-2020-1	лабораторная работа	 [15, 15] https://cloud.rgsu.net/s/AQ5NzqMCzDRb4KM https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50457/news_id/167749
+2	09:55 11:25	ПСД-С-2-Д-2020-1	лабораторная работа	 [15, 15] https://cloud.rgsu.net/s/AQ5NzqMCzDRb4KM https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50457/news_id/167824
 
-3	19:00 20:30	ДИЗ-Б-01-В-2020-1	лабораторная работа	 [11, 11] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50425/news_id/167750
+3	19:00 20:30	ДИЗ-Б-01-В-2020-1	лабораторная работа	 [11, 11] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50425/news_id/167825
 
-4	20:35 22:05	ДИЗ-Б-01-В-2020-1	лабораторная работа	 [11, 11] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50425/news_id/167750
+4	20:35 22:05	ДИЗ-Б-01-В-2020-1	лабораторная работа	 [11, 11] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/50425/news_id/167825
 
-5	20:45 22:15	ДИЗ-Б-01-В-2020-2	лабораторная работа	 [1, 1] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/52821/news_id/167751
+5	20:45 22:15	ДИЗ-Б-01-В-2020-2	лабораторная работа	 [1, 1] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/52821/news_id/167826
 
-6	22:25 23:55	ДИЗ-Б-01-В-2020-2	лабораторная работа	 [1, 1] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/52821/news_id/167751
+6	22:25 23:55	ДИЗ-Б-01-В-2020-2	лабораторная работа	 [1, 1] https://cloud.rgsu.net/s/P2S2pm5kzdS8bFC https://sdo.rgsu.net/news/index/view/subject/subject/subject_id/52821/news_id/167826
 
