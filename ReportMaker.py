@@ -78,7 +78,7 @@ def count_students(group_name, rd2): # count students on downloaded attendance p
     return rd7
 
 opts = Options()  
-opts.add_argument("--headless")
+#opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 #opts.page_load_strategy = 'normal'
 print('Driver is starting now .........................................................')
@@ -152,17 +152,16 @@ print('Script working. Please, wait ............................................
 driver.get(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[2]/a').get_attribute('href'))
 mymes('Loading data', 5)
 for les_data in report_data:
-    #находим группу и парсим ссылку на страничку с посещениями
+    # checking group and finding links to group's journal
     for lesson in driver.find_elements_by_class_name("lesson_table"):
-        group = lesson.find_elements_by_tag_name('p')[5].text # Мои курсы - группы в курсе - мы перебираем и
-        if les_data[3] in group: # проверяем, что группа тут, тогда будем искасть в боковом фрейме ссылку на журнал посещений
-            # поиск ссылки на lesson_type журнал
+        if les_data[3] in lesson.find_element_by_class_name("lesson_options").text: # checking that left table pane contains our group
+            # finding link to journal of our lesson_type
             for items in lesson.find_elements_by_class_name("hm-subject-list-item-description-lesson-title"):
                 link_elem = items.find_element_by_tag_name('a')
-                if les_data[4][:6] in link_elem.text: # если тип занятия совпадает
-                    les_data[8] = link_elem.get_attribute('href') # сохраняем ссылку на журнал посещений
-                    break # нашли ссылку, сохранили и вышли из цикла поиска
-            break # выходим из цикла поиска ссылок для группы, переходим к другой группе
+                if les_data[4][:6] in link_elem.text: # if lesson types matches
+                    les_data[8] = link_elem.get_attribute('href') # save link to journal of attendance
+                    break
+            break # go to next group
 # let's go to attendance page of current lesson type
 for les_data in report_data:
     if les_data[9] == '':       # no link to news page, therefore need to handle group
