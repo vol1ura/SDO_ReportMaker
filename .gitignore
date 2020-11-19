@@ -2,6 +2,7 @@
 *.html
 *.tmp
 settings.txt
+report.txt
 geckodriver*
 ### Python ###
 # Byte-compiled / optimized / DLL files
