@@ -19,12 +19,19 @@ except(IOError, OSError) as e:
     print()
     sys.exit('Error when reading settings.txt !!! Check also file encoding.')
 
+try:
+    with open('..\\rgsu.config\\sdo.auth') as f:
+        login = f.readline().strip()
+        password = f.readline().strip()
+except(IOError, OSError) as e:
+    print(e)
+    print()
+    sys.exit('Error when reading sdo.auth file!!!')
+
 f_date = list(map(int, settings[0].strip().split('.')))
 date = datetime(f_date[2], f_date[1], f_date[0], 23, 59, 59)
 date_str = date.strftime("%d.%m.%y")
 print('Date of report:', date_str)
-login = settings[1].strip()
-password = settings[2].strip()
 
 date_wd = datetime.now()
 while date_wd.isoweekday() != 1:
@@ -65,7 +72,7 @@ def count_students(group_name, rd2): # count students on downloaded attendance p
         if len(j_dates) != 0 and tmp > j_dates[-1][0]: # if dates growing then journal not new
             flag = True
         j_dates.append([tmp, jd])
-    if not flag: # if we reach last date in period and all dates equals, then we need count since first columns
+    if not flag: # if we reach last date in period and all dates equals, then we need count first columns
         j_dates = j_dates[:rd2]
     rd7 = []
     for i in range(rd2):
@@ -183,7 +190,7 @@ for les_data in report_data:
 # пока просто заглушка - читаем ссылки на файлы в облаке из файла
 for lesson in report_data:
     #print(lesson)
-    lesson[10] = settings[lesson[1] + 3].strip()
+    lesson[10] = settings[lesson[1] + 1].strip()
 # here must be block for uploading video files to cloud.rssu.net
 
 for les_data in report_data:
