@@ -1,5 +1,4 @@
-*settings.txt
-*.txt
+*.txt*
 *.csv
 *.html
 *.tmp
