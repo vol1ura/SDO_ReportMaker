@@ -58,17 +58,13 @@ def count_students(group_name, rd2):
             list_item.click()            # click group
             print(list_item.text)
             break
-    # !!! refactor this xpath
-    driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/form[1]/div/div[2]/button').click() # filter button click
-    try:
-        get_link = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="marksheet-form-filters"]/div/div[3]/div/a[3]/div'))) # all link click
-        get_link.click()
-    except:
-        print('Check attendance page! There is no link "all" for', group_name)
+    driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click() # filter button click
+    get_link = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="ending"]'))) # all link click
+    get_link.click()
     j_dates = []
     flag = False
-    # !!! comment and refactor
-    element = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[1]/div/div/div/form[2]/table/thead/tr')))
+    # Get head of journal table:
+    element = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
     for jd in element.find_elements_by_tag_name('th')[1:-2]:
         tmp = jd.find_element_by_class_name("date-caption").text.strip().split('.')
         tmp = datetime(int(tmp[2]), int(tmp[1]), int(tmp[0]))
@@ -103,7 +99,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     from selenium.webdriver.chrome.options import Options # for Chrome browser
 
 opts = Options()  
-#opts.add_argument("--headless")
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 mymes('Driver is starting now', 0, False)
 mymes("Please wait, don't close windows!", 0, False)
@@ -135,7 +131,7 @@ driver.find_element_by_id('password').send_keys(password)
 get_link = wait.until(EC.element_to_be_clickable((By.ID, 'submit')))
 get_link.click()
 # Tutor mode ON:
-get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/span/div/span[2]/span/div/div[2]')))
+get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
 get_link.click()
 
 driver.maximize_window()
@@ -143,7 +139,7 @@ driver.maximize_window()
 # =============================================================================
 # Go to timetable and parse it:
 # =============================================================================
-get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/ul/li[7]/a')))
+get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
 get_link.click()
 
 mymes('Timetable is opening', 1)
@@ -186,9 +182,9 @@ for pair in pairs:
 # Go to "My Courses" page - it loads very long !!!
 # =============================================================================
 mymes('Script working. Please, wait', 0, False)
-driver.get(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div/ul/li[2]/a').get_attribute('href'))
-# !!! refactor this - chenge pause for checking of some element on the page
-mymes('Loading All courses page', 5)
+driver.get(driver.find_element_by_xpath('//div[@class="wrapper"]/ul/li[2]/a').get_attribute('href'))
+mymes('Loading All courses page', 1) # pause and wait until all elements located:
+wait.until(EC.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))
 for les_data in report_data:
     # checking group and finding links to group's journal
     for lesson in driver.find_elements_by_class_name("lesson_table"):
@@ -209,10 +205,12 @@ for les_data in report_data:
     if les_data[9] == '':       # no link to news page, therefore need to handle group
         driver.get(les_data[8]) # go to attendance page
         mymes('Loading journal', 1)
-        les_data[9] = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[2]/div[2]/div[1]/div/div/div/div[2]/div/div[5]/div/ul/li[1]/ul/li[1]/a').get_attribute('href') # News link
-        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]').click() # close meny panel
+        # Get news link
+        get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//a[@class="activity-1"]')))
+        les_data[9] = get_link.get_attribute('href')
+        driver.find_element_by_xpath('//*[@id="main"]/div[3]').click() # close meny panel
         les_data[7] = count_students(les_data[3], les_data[2])
-        driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[3]').click() # open meny panel
+        driver.find_element_by_xpath('//*[@id="main"]/div[3]').click() # open meny panel
     if les_data[2] > 1:
         for les_data1 in report_data:
             if les_data[3] == les_data1[3] and les_data1[9] == '':
@@ -238,7 +236,6 @@ def free_space():
         fs /= 1024
     print('Free space in your cloud: {0:.2f} Gb'.format(fs))
 
-print('def checkpath:')
 def checkpath(p):
     if not client.check(p):
         client.mkdir(p)
@@ -246,19 +243,20 @@ def checkpath(p):
 
 rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', \
          date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
+
 rem_path = ''
-print('проверка и создание папок в облаке:')
 for folder in rem_folders:
     rem_path += folder + '/'
     checkpath(rem_path)
-print('подготовка к загрузке в облако:')
+
 files = os.listdir(video_path)
 free_space()
 print('upload cycle')
 for file in files:
     if 'Video' in file:
         print('File {} is uploading now. Please, wait!!!'.format(file))
-        client.upload_sync(remote_path = rem_path, local_path = video_path)
+        client.upload_sync(remote_path = rem_path + '/' + file, \
+        local_path = os.path.join(video_path, file))
         print('Uploading of {} is finished.'.format(file))
 print('Uploading of all files is finished.')
 free_space()
@@ -271,10 +269,7 @@ driver.find_element_by_id('password').send_keys(password)
 driver.find_element_by_id('submit-form').click()
 mymes('Authorization', 1)
 
-for folder in rem_folders:
-    xpath = '//span[contains(text(), "' + folder + '")]'
-    dir_link = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
-    dir_link.click()
+driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
 fileList = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
 video_links = []
 share_buttons = fileList.find_elements_by_xpath('//td[2]/a/span[2]/a[1]/span[1]')
@@ -287,8 +282,8 @@ for b in share_buttons:
     link_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
     video_links.append(link_button.get_attribute('href').strip()) # add link
 
-for lesson in report_data:
-    lesson[10] = video_links[lesson[1]]
+for les_data in report_data:
+    les_data[10] = video_links[les_data[1] - 1]
 
 # =============================================================================
 # Making news
@@ -304,7 +299,8 @@ for les_data in report_data:
         news_text = '<p>Занятие от ' + date.strftime("%d.%m.%Y") + ' г.:</p><ul>'
         for les_data1 in report_data:
             if les_data[3] == les_data1[3]:
-                news_text += '<li><a href="' + les_data1[10] + '">Запись трасляции занятия</a>&nbsp;(' + les_data1[4] + ',&nbsp;' + les_data1[5] + ' - ' + les_data1[6] + ')'
+                news_text += '<li><a href="' + les_data1[10] + '">Запись трасляции занятия</a>&nbsp;(' \
+                             + les_data1[4] + ',&nbsp;' + les_data1[5] + ' - ' + les_data1[6] + ')'
         news_text += '</ul>'
         get_link = wait.until(EC.presence_of_element_located((By.ID, 'announce')))
         get_link.send_keys(announce)
@@ -335,16 +331,16 @@ for les_data in report_data:
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', report_button)
     mymes('Scrolling page', 2)
     report_button.click()
-    driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[1]/input').send_keys(Keys.BACKSPACE + str(les_data[7][0]))
-    driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[2]/input').send_keys(Keys.BACKSPACE + les_data[10])
-    driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/form/dl/dd[3]/input').send_keys(Keys.BACKSPACE + les_data[11])
-    driver.find_element_by_xpath('/html/body/div[3]/div[3]/div/button[1]/span').click()
+    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data[7][0]))
+    driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data[10])
+    driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data[11])
+    driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
 
-#'''
+'''
 print('This day you have next lessons:')
 for lesson in report_data:
     print(lesson)
-#'''
+'''
 
 f = open('report.txt', 'w')
 f.write('This day you have next lessons\n\n')
@@ -354,6 +350,6 @@ for lesson in report_data:
 f.close()
 
 print("All work is done! Congratulations!!!!!!!!!")
-input('press any key...')
+#input('press enter...')
 driver.quit()
 print("Driver Turned Off")
