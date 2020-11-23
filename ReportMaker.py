@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+# Volodin Yuriy, 2020
+# volodinjuv@rgsu.net
+# Making teacher's report on SDO.RSSU.NET
+# ==================== Version 1.0 ===========================================
 from datetime import datetime, timedelta
 import os
 from selenium import webdriver
@@ -18,23 +23,28 @@ except(IOError, OSError) as e:
     print()
     sys.exit('Error when reading settings.txt !!! Check also file encoding.')
 
-login = settings[1].strip()
-password = settings[2].strip()
-token = settings[3].strip()
-video_path = settings[4].strip()
-browser = settings[5].strip().upper()
-browser_driver_path = settings[6].strip()
+login = settings[0].strip()
+password = settings[1].strip()
+token = settings[2].strip()
+video_path = settings[3].strip()
+browser = settings[4].strip().upper()
+browser_driver_path = settings[5].strip()
 
-date = [int(x) for x in settings[0].strip().split('.')[::-1]]
-date = datetime(*date, 23, 59, 59)
+date_wd = datetime.now()
+if len(sys.argv) < 2:
+    date = date_wd
+else:
+    date = [int(x) for x in sys.argv[1].split('.')[::-1]]
+    if date[0] < 50:
+        date[0] = 2000 + date[0]
+    date = datetime(*date, 23, 59, 59)
 date_str = date.strftime("%d.%m.%y")
 print('Date of report:', date_str)
 
-date_wd = datetime.now()
 while date_wd.isoweekday() != 1:
     date_wd -= timedelta(1)
 if date < date_wd or date - date_wd > timedelta(6):
-    sys.exit('Error!!! Check date in settings.txt')
+    sys.exit('Error! Cannot make a report for this date. Check date in settings.txt')
 
 def mymes(mes, d, plus_mark = True):
     k = 80 - len(mes) - 7
@@ -143,8 +153,7 @@ get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@class="wrapp
 get_link.click()
 
 mymes('Timetable is opening', 1)
-mymes('Parsing', 1, False)
-pairs = driver.find_elements_by_class_name("tt-row")
+pairs = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
 tt_row = 0    # rows counter in time table
 pair_num = 0  # pair counter - номер пары по счёту в этот день 
 report_data = [] # array of data
@@ -179,7 +188,7 @@ for pair in pairs:
     tt_row += 1
 
 # =============================================================================
-# Go to "My Courses" page - it loads very long !!!
+# Go to "My Courses" page - it downloads very long !!!
 # =============================================================================
 mymes('Script working. Please, wait', 0, False)
 driver.get(driver.find_element_by_xpath('//div[@class="wrapper"]/ul/li[2]/a').get_attribute('href'))
@@ -224,10 +233,10 @@ for les_data in report_data:
 # Unloading video files on cloud.sdo.net
 # =============================================================================
 opts = {
- 'webdav_hostname': token,
- 'webdav_login':    login,
- 'webdav_password': password,
- 'verbose':         True
+  'webdav_hostname': token,
+  'webdav_login':    login,
+  'webdav_password': password,
+  'verbose':         True
 }
 client = Client(opts) # using webdav protocol for files uploading
 
@@ -245,7 +254,7 @@ def checkpath(p):
         print('Directory [{}] created.'.format(p))
 
 rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', \
-         date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
+          date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
 
 rem_path = ''
 for folder in rem_folders:
@@ -303,7 +312,7 @@ for les_data in report_data:
         for les_data1 in report_data:
             if les_data[3] == les_data1[3]:
                 news_text += '<li><a href="' + les_data1[10] + '">Запись трасляции занятия</a>&nbsp;(' \
-                             + les_data1[4] + ',&nbsp;' + les_data1[5] + ' - ' + les_data1[6] + ')'
+                              + les_data1[4] + ',&nbsp;' + les_data1[5] + ' - ' + les_data1[6] + ')'
         news_text += '</ul>'
         get_link = wait.until(EC.presence_of_element_located((By.ID, 'announce')))
         get_link.send_keys(announce)
