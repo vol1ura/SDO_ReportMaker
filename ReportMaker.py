@@ -205,8 +205,11 @@ for les_data in report_data:
     if les_data[9] == '':       # no link to news page, therefore need to handle group
         driver.get(les_data[8]) # go to attendance page
         mymes('Loading journal', 1)
-        # Get news link
-        get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//a[@class="activity-1"]')))
+        # Open accordion
+        get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="page-context-accordion"]/h3[5]/a/span')))
+        get_link.click()
+        # Get news link for adding report
+        get_link = driver.find_element_by_xpath('//a[@class="activity-1"]')
         les_data[9] = get_link.get_attribute('href')
         driver.find_element_by_xpath('//*[@id="main"]/div[3]').click() # close meny panel
         les_data[7] = count_students(les_data[3], les_data[2])
@@ -251,14 +254,14 @@ for folder in rem_folders:
 
 files = os.listdir(video_path)
 free_space()
-print('upload cycle')
+mymes('Upload cycle', 0, False)
 for file in files:
     if 'Video' in file:
         print('File {} is uploading now. Please, wait!!!'.format(file))
         client.upload_sync(remote_path = rem_path + '/' + file, \
         local_path = os.path.join(video_path, file))
-        print('Uploading of {} is finished.'.format(file))
-print('Uploading of all files is finished.')
+        mymes('Uploading of ' + file + ' is finished', 0)
+mymes('Uploading of all files is finished', 0)
 free_space()
 
 mymes('Now links will be generated through web interface.', 0, False)
@@ -329,7 +332,7 @@ for les_data in report_data:
     pairs = driver.find_elements_by_class_name("tt-row")
     report_button = pairs[les_data[0]].find_element_by_tag_name('button')
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', report_button)
-    mymes('Scrolling page', 2)
+    mymes('Adding report', 2)
     report_button.click()
     driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data[7][0]))
     driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data[10])
@@ -349,7 +352,7 @@ for lesson in report_data:
     f.write(str(lesson[1])+'\t'+lesson[5]+' '+lesson[6]+'\t'+lesson[3]+'\t'+lesson[4]+'\t '+str(lesson[7])+' '+lesson[10]+' '+lesson[11]+'\n\n')
 f.close()
 
-print("All work is done! Congratulations!!!!!!!!!")
+print("All work is done! See program report in report.txt")
 #input('press enter...')
 driver.quit()
 print("Driver Turned Off")
