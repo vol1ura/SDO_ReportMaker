@@ -1,4 +1,4 @@
 @echo off
 cls
-python3 ReportMaker.py %1
+python ReportMaker.py %1
 pause
