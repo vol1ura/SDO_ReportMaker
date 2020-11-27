@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
-# Volodin Yuriy, 2020
-# volodinjuv@rgsu.net
-# Making teacher's report on SDO.RSSU.NET
-# ==================== Version 2.0 ===========================================
+# -*- coding: utf-8 -*-
+#
+# ==================== Version 2.0 =================================
+# ReportMaker - make teacher's report on SDO.RSSU.NET.
+# Copyright (c) 2020 Yuriy Volodin, volodinjuv@rgsu.net
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
 import re
 from datetime import datetime, timedelta
 from infoout import mymes
@@ -10,7 +22,7 @@ import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 import sys
 from time import sleep
@@ -97,14 +109,17 @@ free_space()
 files_count = 0
 callback_count = 0
 for file in files:
-    if re.fullmatch(r'Video\d\.\w{,5}', file) and not client.check(rem_path + '/' + file):
-        client.upload_async(remote_path=rem_path + '/' + file,
-                            local_path=os.path.join(video_path, file),
-                            callback=callback)
-        files_count += 1
-        mymes('Uploading of file' + file + 'is started', 0)
+    if re.fullmatch(r'Video\d\.\w{,5}', file):
+        if not client.check(rem_path + '/' + file):
+            client.upload_async(remote_path=rem_path + '/' + file,
+                                local_path=os.path.join(video_path, file),
+                                callback=callback)
+            files_count += 1
+            mymes('Uploading of file [' + file + '] is started', 0)
+        else:
+            print('File [' + file + '] has already been uploaded and will be skipped.')
 
-mymes('Asynchronous upload cycle of ' + str(files_count) + ' files is started', 0)
+mymes('Asynchronous unloading of ' + str(files_count) + ' files is started', 0)
 
 # =============================================================================
 # Browser driver initialization
@@ -115,7 +130,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
-# opts.add_argument("--headless")
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 mymes('Driver is starting now', 0, False)
 mymes("Please wait, don't close windows!", 0, False)
@@ -139,17 +154,17 @@ mymes('Headless Mode is initialized', 0)
 # Login on sdo.rgsu.net
 # =============================================================================
 driver.get('https://sdo.rgsu.net/')
-get_link = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'login')))
+get_link = wait.until(ec.element_to_be_clickable((By.CLASS_NAME, 'login')))
 get_link.click()
 mymes('Opening login form', 1, False)
 mymes('Entering login and password', 1, False)
 driver.find_element_by_id('login').send_keys(login)
 driver.find_element_by_id('password').send_keys(password)
 # Submit authorization:
-get_link = wait.until(EC.element_to_be_clickable((By.ID, 'submit')))
+get_link = wait.until(ec.element_to_be_clickable((By.ID, 'submit')))
 get_link.click()
 # Tutor mode ON:
-get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
+get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
 get_link.click()
 
 driver.maximize_window()
@@ -157,15 +172,15 @@ driver.maximize_window()
 # =============================================================================
 # Go to timetable and parse it:
 # =============================================================================
-get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
+get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
 get_link.click()
 
 mymes('Timetable is opening', 1)
-pairs = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
+pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
 progress_l = 80 - 14 - 2
 print('Parsing: [' + ' ' * progress_l + '] 0%', end='')
 tt_row = 0  # rows counter in time table
-pair_num = 0  # pair counter - номер пары по счёту в этот день 
+pair_num = 0  # pair counter - class number on that day
 report_data = []  # array of data
 for pair in pairs:
     # Read lines, parse discipline, time, date and type
@@ -173,8 +188,8 @@ for pair in pairs:
     # if date on current line in cell 3 - it is our date
     cell3 = pair_cells[2].text  # discipline and dates in a single cell
     if date_str in cell3:
-        group = pair_cells[3].text.strip()  # группа
-        group_num = 1  # счётчик пар с конкретной группой
+        group = pair_cells[3].text.strip()  # group
+        group_num = 1  # counter of lessons with this group
         lesson_type = pair_cells[4].text.strip()  # lesson type
         discipline = re.sub(r'\s?\d{2}.\d{2}.(\d{2}|\d{4});?', '', cell3).strip()
         try:
@@ -186,15 +201,16 @@ for pair in pairs:
             print('Check time for:', group, pair_cells[5].text.strip(), pair_cells[6].text.strip())
             cell_date = date.replace(hour=8, minute=0, second=0, microsecond=0)
         # проверка, что предыдущая запись в таблице - пара в то же время, при несовпадении увеличиваем счётчик pair_num
-        if len(report_data) == 0 or \
-                report_data[-1]['date'].hour != date.hour or report_data[-1]['date'].minute != date.minute:
+        if (len(report_data) == 0) or \
+                (report_data[-1]['date'].hour != cell_date.hour) or \
+                (report_data[-1]['date'].minute != cell_date.minute):
             pair_num += 1
         # подсчёт количества пар с группой
         for rep in report_data:
             if rep['group'] == group:
                 rep['group_n'] += 1
                 group_num = rep['group_n']
-        # пишем все данные в список и добавляем список в конец массива report_data:
+        # writing all collected data to dictionary and appending it to the back of list report_data:
         report_data.append({'row': tt_row, 'pair': pair_num,
                             'group_n': group_num, 'group': group,
                             'type': lesson_type, 'discipline': discipline,
@@ -212,7 +228,7 @@ print('\rParsing: [' + '#' * progress_l + '] 100%')
 mymes('Script working. Please, wait', 0, False)
 driver.get(driver.find_element_by_xpath('//div[@class="wrapper"]/ul/li[2]/a').get_attribute('href'))
 mymes('Loading All courses page', 1)  # pause and wait until all elements located:
-wait.until(EC.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))  # checking that page is downloaded
+wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))  # checking that page is downloaded
 progress_l = 80 - 14 - 2
 progress = 0
 print('Parsing: [' + ' ' * progress_l + '] 0%', end='')
@@ -239,10 +255,6 @@ for les_data in report_data:
           ' ' * ((len(report_data) - progress) * progress_l // len(report_data)) + '] ' +
           str(int(progress / len(report_data) * 100 + 0.5)) + '%', end='')
 print('\rParsing: [' + '#' * progress_l + '] 100%')
-
-print('This day you have next lessons:')
-for les_data in report_data:
-    print(les_data)
 
 # =============================================================================
 # Let's go to forum and count students
@@ -276,10 +288,10 @@ for les_data in report_data:
     driver.get(les_data['journal'])
     mymes('Loading journal (attendance page)', 1)
     # Preparing journal for parsing and filling up ###########################################################
-    element = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[3]')))
+    element = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[3]')))
     element.click()  # close menu panel
     # Open drop-down menu
-    select_group = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
+    select_group = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
     # cycle through elements in drop-down list to find our group
     for list_item in select_group.find_elements_by_tag_name("option"):
         # if group is founded, open journal and counting attendance
@@ -289,12 +301,10 @@ for les_data in report_data:
             print(list_item.text)  # Print selected group name
             break
     driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click()  # filter button click
-    # get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//a[contains(@href, "/day/all")]')))  # all link
-    # driver.get(get_link.get_attribute('href'))
     mymes('Filling attendance of students', 1, False)
     # ###########################################################################################################
     # Get head of journal table:
-    table_head = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
+    table_head = wait.until(ec.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
     for cell_head in table_head.find_elements_by_tag_name('th')[1:-2]:
         id_th_day = cell_head.get_attribute('id')[7:]
         # Checking column with this id for emptiness. Selecting cell with presence:
@@ -337,13 +347,13 @@ k = 0
 l = 80 - 24
 print('Uploading videos [' + ' ' * l + ']', end='')
 while callback_count != files_count:
-    p = int(callback_count / files_count * l + 0.5)
+    p = int(callback_count / files_count * l + 0.4)
     print('\rUploading videos [' + '#' * p, end='')
     k = k + 1 if k < int(0.75 / files_count * l + 0.5) else 0
     print('#' * k + ' ' * (l - p - k) + ']', end='')
     sleep(0.5)
 print('\rUploading videos [' + '#' * l + '] 100%')
-mymes('Uploading of all files on rgsu.cloud.net is finished', 0)
+mymes('Uploading of all files on rgsu.cloud.net is complete', 0)
 free_space()
 
 # =============================================================================
@@ -359,26 +369,20 @@ driver.find_element_by_id('submit-form').click()
 mymes('Authorization', 1)
 
 driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
-fileList = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
+fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
 video_links = []
 share_buttons = fileList.find_elements_by_xpath('//td[2]/a/span[2]/a[1]/span[1]')
 for b in share_buttons:
     b.click()
     mymes('Sharing file', 2)
-    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
+    wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
     # One click somewhere to close menu:
     driver.find_element_by_xpath('//*[@id="filestable"]/tfoot/tr/td[2]/span/span[3]').click()
-    link_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
+    link_button = wait.until(ec.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
     video_links.append(link_button.get_attribute('href').strip())  # add link
 
 for les_data in report_data:
     les_data['video'] = video_links[les_data['pair'] - 1]
-
-
-
-for les_data in report_data:
-    print(les_data)
-
 
 # =============================================================================
 # Making news
@@ -398,9 +402,9 @@ for les_data in report_data:
                              + les_data1['type'] + ',&nbsp;' + les_data1['date'].strftime("%H:%M") + ' - ' \
                              + (les_data1['date'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + ')'
         news_text += '</ul>'
-        get_link = wait.until(EC.presence_of_element_located((By.ID, 'announce')))
+        get_link = wait.until(ec.presence_of_element_located((By.ID, 'announce')))
         get_link.send_keys(announce)
-        get_link = wait.until(EC.presence_of_element_located((By.ID, 'message_code')))
+        get_link = wait.until(ec.presence_of_element_located((By.ID, 'message_code')))
         get_link.click()
         mymes('Loading edit form', 1)
         driver.switch_to.frame("mce_13_ifr")
@@ -410,13 +414,12 @@ for les_data in report_data:
         driver.find_element_by_id('submit').click()
         mymes('Saving news', 1)  # This timeout is no needed and can be commented or deleted!
         get_link = wait.until(
-            EC.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
+            ec.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
         les_data['news_link'] = get_link.get_attribute('href')
         if les_data['group_n'] > 1:
             for les_data1 in report_data:
-                if les_data['group'] == les_data1['group'] and 'news_link' not in les_data:
+                if (les_data['group'] == les_data1['group']) and ('news_link' not in les_data):
                     les_data1['news_link'] = les_data['news_link']
-
 
 
 for les_data in report_data:
@@ -426,7 +429,7 @@ for les_data in report_data:
 # =============================================================================
 # Open timetable page to write report        
 # =============================================================================
-get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
+get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
 get_link.click()
 for les_data in report_data:
     pairs = driver.find_elements_by_class_name("tt-row")
@@ -434,6 +437,10 @@ for les_data in report_data:
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', report_button)  # REFACTOR
     mymes('Adding report', 2)
     report_button.click()
+    if 'attendance' not in les_data:
+        print('Attention! Attendance for ' + les_data['group'] + ' has not been calculated!')
+        print('Verify that journals are filled out correctly and make corrections manually.')
+        les_data['attendance'] = 0
     driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data['attendance']))
     driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
     driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
@@ -449,8 +456,9 @@ with open('report.txt', 'w') as f:
     f.write('This day you have next lessons\n\n')
     f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
     for lesson in report_data:
-        f.write(lesson['time'].strftime("%H:%M") + '\t' + lesson['type'] + ' ' + lesson['group'] + '\t' +
-                lesson['attendance'] + '\t' + lesson['video'] + ' ' + lesson['news_link'] + '\n\n')
+        f.write(lesson['pair'] + '\t' + lesson['time'].strftime("%H:%M") + '\t' + lesson['type'] + ' ' +
+                lesson['group'] + '\t' + str(lesson['attendance']) + '\t' + lesson['video'] + ' ' +
+                lesson['news_link'] + '\n\n')
 
 
 print("All work is done! See program report in report.txt")
