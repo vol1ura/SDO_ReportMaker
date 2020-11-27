@@ -2,7 +2,7 @@
 # Volodin Yuriy, 2020
 # volodinjuv@rgsu.net
 # Making teacher's report on SDO.RSSU.NET
-# ==================== Version 1.0 ===========================================
+# ==================== Version 2.0 ===========================================
 import re
 from datetime import datetime, timedelta
 from infoout import mymes
@@ -15,7 +15,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 import sys
 from time import sleep
 from webdav3.client import Client
-
 # ============================================================================
 
 try:
@@ -49,54 +48,11 @@ while date_wd.isoweekday() != 1:
 if date < date_wd or date - date_wd > timedelta(6):
     sys.exit('Error! Cannot make a report for this date. Check date in settings.txt')
 
-'''
-def count_students(group_name, rd2):
-    """Count students on downloaded attendance page, using last rd2 columns."""
-    select_group = driver.find_element_by_xpath('//*[@id="groupname"]')
-    # cycle through elements in drop-down list to find our group
-    for list_item in select_group.find_elements_by_tag_name("option"):
-        # if group is founded, open journal and counting attendance
-        if group_name in list_item.text:
-            select_group.click()  # click dropdown list
-            list_item.click()  # click group
-            print(list_item.text)
-            break
-    driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click()  # filter button click
-    get_link = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="ending"]')))  # all link click
-    get_link.click()
-    j_dates = []
-    flag = False
-    # Get head of journal table:
-    element = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
-    for jd in element.find_elements_by_tag_name('th')[1:-2]:
-        tmp = jd.find_element_by_class_name("date-caption").text.strip().split('.')
-        tmp = datetime(int(tmp[2]), int(tmp[1]), int(tmp[0]))
-        if len(j_dates) != 0 and tmp < j_dates[-1][0]:
-            # ok, it is last date of checking
-            break
-        if len(j_dates) != 0 and tmp > j_dates[-1][0]:
-            # if dates growing then journal not new
-            flag = True
-        j_dates.append([tmp, jd])
-    if not flag:
-        # if we reach last date in period and all dates equals, 
-        # then we need count first columns
-        j_dates = j_dates[:rd2]
-    rd7 = []
-    for i in range(rd2):
-        id_th_day = j_dates[i - rd2][1].get_attribute('id')[7:]
-        # take id of date to count cells by id
-        count = 0
-        for td in driver.find_elements_by_class_name('is_be_row_' + id_th_day):
-            if td.find_element_by_tag_name('p').text.strip() == 'Был':
-                count += 1
-        rd7.append(count)  # append attendance in array
-    return rd7
-'''
 
-def scroll_page(web_element):
+def scroll_page(web_element, t=2):
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', web_element)
-    sleep(2)
+    sleep(t)
+
 
 # =============================================================================
 # Browser driver initialization
@@ -204,25 +160,26 @@ print('\rParsing: [' + '#' * progress_l + '] 100%')
 mymes('Script working. Please, wait', 0, False)
 driver.get(driver.find_element_by_xpath('//div[@class="wrapper"]/ul/li[2]/a').get_attribute('href'))
 mymes('Loading All courses page', 1)  # pause and wait until all elements located:
-wait.until(EC.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))
+wait.until(EC.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))  # checking that page is downloaded
 progress_l = 80 - 14 - 2
 progress = 0
 print('Parsing: [' + ' ' * progress_l + '] 0%', end='')
 for les_data in report_data:
     # checking group and finding links to group's journal
     for lesson in driver.find_elements_by_class_name("lesson_table"):
-        if les_data['group'] in lesson.find_element_by_class_name(
-                "lesson_options").text:  # checking that left table pane contains our group
+        # checking that left table pane contains our group:
+        if les_data['group'] in lesson.find_element_by_class_name("lesson_options").text:
             # finding link to page of this course
             link = lesson.find_element_by_id("lesson_title").find_element_by_tag_name('a').get_attribute('href')
             course_id = re.search(r'\d+$', link)[0]
+            les_data['news'] = 'https://sdo.rgsu.net/news/index/index/subject_id/' + course_id + '/subject/subject'
             les_data['forum'] = 'https://sdo.rgsu.net/forum/subject/subject/' + course_id
             # finding link to journal of our lesson_type
             for items in lesson.find_elements_by_class_name("hm-subject-list-item-description-lesson-title"):
                 link_elem = items.find_element_by_tag_name('a')
                 if les_data['type'][:6] in link_elem.text:  # if lesson types matches
                     # save link to journal of attendance:
-                    les_data['journal'] = link_elem.get_attribute('href')
+                    les_data['journal'] = link_elem.get_attribute('href') + '/day/all'
                     break
             break  # go to next group
     progress += 1
@@ -238,9 +195,8 @@ for les_data in report_data:
 # =============================================================================
 # Let's go to forum and count students
 # =============================================================================
-# Take lesson from timetable
 for les_data in report_data:
-    # Go to forum
+    # Go to forum. Take lesson from timetable
     driver.get(les_data['forum'])
     attendance_set = set([])
     # Parse students
@@ -261,13 +217,16 @@ for les_data in report_data:
                 if les_data['date'] <= comment_date <= les_data['date'] + timedelta(hours=1, minutes=30):
                     attendance_set.add(comment_name)
     print(attendance_set)
-    # Go to journal of attendance
+    # =============================================================================
+    # Let's go to attendance page of current lesson type
+    # =============================================================================
+    attendance_count = 0  # attendance counter
     driver.get(les_data['journal'])
-    mymes('Loading journal', 1)
+    mymes('Loading journal (attendance page)', 1)
     # Preparing journal for parsing and filling up ###########################################################
     element = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[3]')))
     element.click()  # close menu panel
-    # Open table
+    # Open drop-down menu
     select_group = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
     # cycle through elements in drop-down list to find our group
     for list_item in select_group.find_elements_by_tag_name("option"):
@@ -278,70 +237,51 @@ for les_data in report_data:
             print(list_item.text)  # Print selected group name
             break
     driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click()  # filter button click
-    sleep(1)  # CHECK почему-то не раскрывается вся таблица
-    get_link = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="ending"]//ancestor::a')))  # all link
-    get_link.click()
+    # get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//a[contains(@href, "/day/all")]')))  # all link
+    # driver.get(get_link.get_attribute('href'))
     mymes('Filling attendance of students', 1, False)
     # ###########################################################################################################
-    # Ищем первый незаполненный столбик и заполняем его, после чего идём на следующую итрацию - другая пара
     # Get head of journal table:
     table_head = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
-    # Делаем перебор по шапке таблицы
     for cell_head in table_head.find_elements_by_tag_name('th')[1:-2]:
         id_th_day = cell_head.get_attribute('id')[7:]
-        # Checking column with this id for emptiness. Selecting cell with presence
+        # Checking column with this id for emptiness. Selecting cell with presence:
         id_column = driver.find_elements_by_xpath('//td[@class="is_be_row_' + id_th_day + '"]/div/p')
         for id_cell in id_column:
-            if id_cell.text == 'Был': break
-        else:  # Заполняем столбец галочками о посещениях
-            # Тут включаем чекбоксы и ставим дату
-            driver.find_element_by_xpath('//a[contains(@onclick, "' + id_th_day + '")]').click()
+            if id_cell.text == 'Был':
+                break
+        else:  # Заполняем столбец галочками о посещениях и ставим дату
+            element = driver.find_element_by_xpath('//a[contains(@onclick, "' + id_th_day + '")]')
+            scroll_page(element, 1)
+            element.click()
             element = driver.find_element_by_xpath('//input[contains(@id, "' + id_th_day + '")]')
-            element.send_keys(Keys.BACKSPACE * 10 + les_data['date'].strftime("%d.%m.%Y"))
-            # Берём столбец с фамилиями студентов
-            # Check students in journal and count they
-            journal_rows = driver.find_elements_by_xpath('//tbody//child::tr')
-            kk = 0
+            element.send_keys(Keys.BACKSPACE * 10)
+            element.send_keys(les_data['date'].strftime("%d.%m.%Y"))  # Set date for column
+            # Check students in journal and count them
+            journal_rows = driver.find_elements_by_xpath('//tr[contains(@class, "fio-cell")]')
             for journal_row in journal_rows:
-                kk += 1
                 if journal_row.find_element_by_tag_name('b').text in attendance_set:
-                    scroll_page(journal_row)
+                    scroll_page(journal_row, 1)
+                    attendance_count += 1
                     get_link = journal_row.find_element_by_tag_name('a').get_attribute('href')
                     id_user = re.search(r'\d+$', get_link)[0]
                     journal_row.find_element_by_id('isBe_user_' + id_user + '_' + id_th_day).click()
             break  # Exit cycle by head of table and go to next les_data
     element = driver.find_element_by_xpath('//*[@id="main"]/div[3]')
+    scroll_page(element, 1)
     element.click()  # open meny panel
     element = driver.find_element_by_xpath('//input[@value="Сохранить"]')
+    les_data['attendance'] = attendance_count
     scroll_page(element)
-    input("press enter:")
-    # element.click()
+    # input("press enter:")
+    # element.click()  # FIXME
     # Cycle
 
-'''
-# FIXME 0-tt_row, номер пары, пар с группой, 3-группа, тип пары, 5-время начала, время окончания, 7-посещения, 8-ссыль на журнал, 9-newspage, 10-videolink, 11 - newslink
-# =============================================================================
-# Let's go to attendance page of current lesson type
-# =============================================================================
-for les_data in report_data:
-    if les_data['news'] == '':  # no link to news page, therefore need to handle group
-        driver.get(les_data['journal'])  # go to attendance page
-        mymes('Loading journal', 1)
-        # Open accordion
-        get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="page-context-accordion"]/h3[5]/a/span')))
-        get_link.click()
-        # Get news link for adding report
-        get_link = driver.find_element_by_xpath('//a[@class="activity-1"]')
-        les_data['news'] = get_link.get_attribute('href')
-        driver.find_element_by_xpath('//*[@id="main"]/div[3]').click()  # close meny panel
-        les_data[7] = count_students(les_data[3], les_data[2])  # FIXME 
-        driver.find_element_by_xpath('//*[@id="main"]/div[3]').click()  # open meny panel
-    if les_data[2] > 1:  # FIXME
-        for les_data1 in report_data:
-            if les_data[3] == les_data1[3] and les_data1[9] == '':
-                les_data1[7] = les_data[7]
-                les_data1[9] = les_data[9]
 
+for les_data in report_data:
+    print(les_data)
+
+'''
 # =============================================================================
 # FIXME Unloading video files on cloud.sdo.net  - async uploading!!!
 # =============================================================================
@@ -386,6 +326,10 @@ for file in files:
         mymes('Uploading of ' + file + ' is finished', 0)
 mymes('Uploading of all files is finished', 0)
 free_space()
+
+# =============================================================================
+# Generating links for files on cloud.sdo.net through web interface
+# =============================================================================
 
 mymes('Now links will be generated through web interface.', 0, False)
 driver.get('https://cloud.rgsu.net/')
