@@ -54,6 +54,58 @@ def scroll_page(web_element, t=2):
     sleep(t)
 
 
+def free_space():
+    fs = float(client.free())
+    for i in range(3):
+        fs /= 1024
+    print('Free space in your cloud [cloud.rgsu.net]: {0:.2f} Gb'.format(fs))
+
+
+def check_path(p_dir: str):
+    if not client.check(p_dir):
+        client.mkdir(p_dir)
+        print('Directory [{}] created.'.format(p_dir))
+
+
+def callback():
+    global callback_count
+    callback_count += 1
+
+
+# =============================================================================
+# Unloading video files on cloud.sdo.net
+# =============================================================================
+opts = {
+    'webdav_hostname': token,
+    'webdav_login': login,
+    'webdav_password': password,
+}
+client = Client(opts)  # using webdav protocol for files uploading
+
+mymes('WebDAV client initialized', 0)
+
+rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
+
+rem_path = ''
+for folder in rem_folders:
+    rem_path += folder + '/'
+    check_path(rem_path)
+
+files = os.listdir(video_path)
+free_space()
+
+files_count = 0
+callback_count = 0
+for file in files:
+    if re.fullmatch(r'Video\d\.\w{,5}', file) and not client.check(rem_path + '/' + file):
+        client.upload_async(remote_path=rem_path + '/' + file,
+                            local_path=os.path.join(video_path, file),
+                            callback=callback)
+        files_count += 1
+        mymes('Uploading of file' + file + 'is started', 0)
+
+mymes('Asynchronous upload cycle of ' + str(files_count) + ' files is started', 0)
+
 # =============================================================================
 # Browser driver initialization
 # =============================================================================
@@ -207,7 +259,7 @@ for les_data in report_data:
         if les_data['date'].strftime("%d.%m.%Y") in topic_title and les_data['date'].strftime("%H:%M") in topic_title:
             element = topic.find_element_by_class_name('topic-expand-comments')
             scroll_page(element)
-            element.click() # expand all comments
+            element.click()  # expand all comments
             mymes('Opening and gathering messages', 1, False)
             comments = topic.find_elements_by_class_name('topic-comment-author-and-pubdate')
             for comment in comments:
@@ -273,58 +325,25 @@ for les_data in report_data:
     element = driver.find_element_by_xpath('//input[@value="Сохранить"]')
     les_data['attendance'] = attendance_count
     scroll_page(element)
-    # input("press enter:")
-    # element.click()  # FIXME
-    # Cycle
+    element.click()
+    driver.find_elements_by_xpath('//div/button[1]/span')[0].click()  # /html/body/div[2]/div[3]/div/button[1]/span
+    mymes('Journal is comleted', 2)
 
 
 for les_data in report_data:
     print(les_data)
 
-'''
-# =============================================================================
-# FIXME Unloading video files on cloud.sdo.net  - async uploading!!!
-# =============================================================================
-opts = {
-    'webdav_hostname': token,
-    'webdav_login': login,
-    'webdav_password': password,
-}
-client = Client(opts)  # using webdav protocol for files uploading
-
-mymes('WebDAV client initialized', 0)
-
-
-def free_space():
-    fs = float(client.free())
-    for i in range(3):
-        fs /= 1024
-    print('Free space in your cloud: {0:.2f} Gb'.format(fs))
-
-
-def checkpath(p):
-    if not client.check(p):
-        client.mkdir(p)
-        print('Directory [{}] created.'.format(p))
-
-
-rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
-
-rem_path = ''
-for folder in rem_folders:
-    rem_path += folder + '/'
-    checkpath(rem_path)
-
-files = os.listdir(video_path)
-free_space()
-mymes('Upload cycle', 0, False)
-for file in files:
-    if 'Video' in file:
-        print('File {} is uploading now. Please, wait!!!'.format(file))
-        client.upload_sync(remote_path=rem_path + '/' + file,
-                           local_path=os.path.join(video_path, file))
-        mymes('Uploading of ' + file + ' is finished', 0)
-mymes('Uploading of all files is finished', 0)
+k = 0
+l = 80 - 24
+print('Uploading videos [' + ' ' * l + ']', end='')
+while callback_count != files_count:
+    p = int(callback_count / files_count * l + 0.5)
+    print('\rUploading videos [' + '#' * p, end='')
+    k = k + 1 if k < int(0.75 / files_count * l + 0.5) else 0
+    print('#' * k + ' ' * (l - p - k) + ']', end='')
+    sleep(0.5)
+print('\rUploading videos [' + '#' * l + '] 100%')
+mymes('Uploading of all files on rgsu.cloud.net is finished', 0)
 free_space()
 
 # =============================================================================
@@ -353,24 +372,31 @@ for b in share_buttons:
     video_links.append(link_button.get_attribute('href').strip())  # add link
 
 for les_data in report_data:
-    les_data[10] = video_links[les_data[1] - 1]
+    les_data['video'] = video_links[les_data['pair'] - 1]
+
+
+
+for les_data in report_data:
+    print(les_data)
+
 
 # =============================================================================
 # Making news
 # =============================================================================
 for les_data in report_data:
-    if les_data[11] == '':  # если ещё не сделали новости и не записали ссылку на новость, то:
-        driver.get(les_data[9])
+    if 'news_link' not in les_data:  # если ещё не сделали новости и не записали ссылку на новость, то:
+        driver.get(les_data['news'])
         mymes('Loading news page', 2)
         driver.find_element_by_partial_link_text('Создать новость').click()
         mymes('Loading news form', 2)
         driver.find_element_by_tag_name("html").send_keys(Keys.PAGE_DOWN)
-        announce = 'Видеоматериалы занятия от ' + date.strftime("%d.%m.%Y") + ' с группой ' + les_data[3]
+        announce = 'Видеоматериалы занятия от ' + date.strftime("%d.%m.%Y") + ' с группой ' + les_data['group']
         news_text = '<p>Занятие от ' + date.strftime("%d.%m.%Y") + ' г.:</p><ul>'
         for les_data1 in report_data:
-            if les_data[3] == les_data1[3]:
-                news_text += '<li><a href="' + les_data1[10] + '">Запись трасляции занятия</a>&nbsp;(' \
-                             + les_data1[4] + ',&nbsp;' + les_data1[5] + ' - ' + les_data1[6] + ')'
+            if les_data['group'] == les_data1['group']:
+                news_text += '<li><a href="' + les_data1['video'] + '">Запись трасляции занятия</a>&nbsp;(' \
+                             + les_data1['type'] + ',&nbsp;' + les_data1['date'].strftime("%H:%M") + ' - ' \
+                             + (les_data1['date'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + ')'
         news_text += '</ul>'
         get_link = wait.until(EC.presence_of_element_located((By.ID, 'announce')))
         get_link.send_keys(announce)
@@ -385,11 +411,17 @@ for les_data in report_data:
         mymes('Saving news', 1)  # This timeout is no needed and can be commented or deleted!
         get_link = wait.until(
             EC.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
-        les_data[11] = get_link.get_attribute('href')
-        if les_data[2] > 1:
+        les_data['news_link'] = get_link.get_attribute('href')
+        if les_data['group_n'] > 1:
             for les_data1 in report_data:
-                if les_data[3] == les_data1[3] and les_data1[11] == '':
-                    les_data1[11] = les_data[11]
+                if les_data['group'] == les_data1['group'] and 'news_link' not in les_data:
+                    les_data1['news_link'] = les_data['news_link']
+
+
+
+for les_data in report_data:
+    print(les_data)
+
 
 # =============================================================================
 # Open timetable page to write report        
@@ -398,30 +430,28 @@ get_link = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div
 get_link.click()
 for les_data in report_data:
     pairs = driver.find_elements_by_class_name("tt-row")
-    report_button = pairs[les_data[0]].find_element_by_tag_name('button')
+    report_button = pairs[les_data['row']].find_element_by_tag_name('button')
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', report_button)  # REFACTOR
     mymes('Adding report', 2)
     report_button.click()
-    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data[7][0]))
-    driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data[10])
-    driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data[11])
+    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data['attendance']))
+    driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
+    driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
     driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
 
-'''
-'''
+
 print('This day you have next lessons:')
 for lesson in report_data:
     print(lesson)
-'''
-'''
-f = open('report.txt', 'w')
-f.write('This day you have next lessons\n\n')
-f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
-for lesson in report_data:
-    f.write(str(lesson[1]) + '\t' + lesson[5] + ' ' + lesson[6] + '\t' + lesson[3] + '\t' + lesson[4] + '\t ' + str(
-        lesson[7]) + ' ' + lesson[10] + ' ' + lesson[11] + '\n\n')
-f.close()
-'''
+
+
+with open('report.txt', 'w') as f:
+    f.write('This day you have next lessons\n\n')
+    f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
+    for lesson in report_data:
+        f.write(lesson['time'].strftime("%H:%M") + '\t' + lesson['type'] + ' ' + lesson['group'] + '\t' +
+                lesson['attendance'] + '\t' + lesson['video'] + ' ' + lesson['news_link'] + '\n\n')
+
 
 print("All work is done! See program report in report.txt")
 # input('press enter...')
