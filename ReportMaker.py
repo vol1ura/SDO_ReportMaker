@@ -76,11 +76,6 @@ def check_path(p_dir: str):
         print('Directory [{}] created.'.format(p_dir))
 
 
-def callback():
-    global callback_count
-    callback_count += 1
-
-
 # =============================================================================
 # Unloading video files on cloud.sdo.net
 # =============================================================================
@@ -102,21 +97,18 @@ for folder in rem_folders:
 
 free_space()
 
-files_count = 0
-callback_count = 0
 files = os.listdir(video_path)
+mymes('Uploading videos. Please wait!', 0, False)
 for file in files:
     if re.fullmatch(r'Video\d\.\w{2,5}', file):
         if not client.check(rem_path + '/' + file):
-            client.upload_async(remote_path=rem_path + '/' + file,
-                                local_path=os.path.join(video_path, file),
-                                callback=callback)
-            files_count += 1
-            mymes('Uploading of file [' + file + '] is started', 0)
+            client.upload_sync(remote_path=rem_path + '/' + file, local_path=os.path.join(video_path, file))
+            mymes('File [' + file + '] is unloaded', 0)
         else:
             print('File [' + file + '] has already been uploaded and will be skipped.')
 
-mymes('Asynchronous unloading of ' + str(files_count) + ' files is started', 0)
+mymes('Uploading of all files on rgsu.cloud.net is complete', 0)
+free_space()
 
 # =============================================================================
 # Browser driver initialization
@@ -340,19 +332,6 @@ for les_data in report_data:
 for les_data in report_data:
     print(les_data)
 
-k = 0
-l = 80 - 24
-print('Uploading videos [' + ' ' * l + ']', end='')
-while callback_count != files_count:
-    p = int(callback_count / files_count * l + 0.4)
-    print('\rUploading videos [' + '#' * p, end='')
-    k = k + 1 if k < int(0.75 / files_count * l + 0.5) else 0
-    print('#' * k + ' ' * (l - p - k) + ']', end='')
-    sleep(0.3)
-print('\rUploading videos [' + '#' * l + '] 100%')
-mymes('Uploading of all files on rgsu.cloud.net is complete', 0)
-free_space()
-
 # =============================================================================
 # Generating links for files on cloud.sdo.net through web interface
 # =============================================================================
@@ -363,7 +342,7 @@ mymes('Entering login and password', 1)
 driver.find_element_by_id('user').send_keys(login)
 driver.find_element_by_id('password').send_keys(password)
 driver.find_element_by_id('submit-form').click()
-mymes('Authorization', 1)
+mymes('Authorization', 2)
 
 driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
 fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
