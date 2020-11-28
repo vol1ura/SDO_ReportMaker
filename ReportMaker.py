@@ -17,6 +17,9 @@
 #
 import re
 from datetime import datetime, timedelta
+
+from colorama import Fore
+
 from infoout import mymes
 import os
 from selenium import webdriver
@@ -35,7 +38,7 @@ try:
 except(IOError, OSError) as e:
     print(e)
     print()
-    sys.exit('\033[31mError when reading settings.txt !!! Check also file encoding.\033[0m')
+    sys.exit(Fore.RED + 'Error when reading settings.txt !!! Check also file encoding.')
 
 login = settings[0].strip()
 password = settings[1].strip()
@@ -55,7 +58,7 @@ print('\033[42m\033[30m{} {}\033[0m'.format('Date of report:', date_str))
 while date_wd.isoweekday() != 1:
     date_wd -= timedelta(1)
 if date < date_wd or date - date_wd > timedelta(6):
-    sys.exit('\033[31mError! Cannot make a report for this date. Check date in settings.txt\033[0m')
+    sys.exit(Fore.RED + 'Error! Cannot make a report for this date. Check date in settings.txt')
 
 
 def scroll_page(web_element, t=2):
@@ -424,17 +427,17 @@ for les_data in report_data:
 
 
 print('This day you have next lessons:')  # REMOVE after testing
-for lesson in report_data:
-    print(lesson)
+for les_data in report_data:
+    print(les_data)
 
 
 with open('report.txt', 'w') as f:
     f.write('This day you have next lessons\n\n')
     f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
-    for lesson in report_data:
-        f.write(lesson['pair'] + '\t' + lesson['time'].strftime("%H:%M") + '\t' + lesson['type'] + ' ' +
-                lesson['group'] + '\t' + str(lesson['attendance']) + '\t' + lesson['video'] + ' ' +
-                lesson['news_link'] + '\n\n')
+    for les_data in report_data:
+        f.write(les_data['pair'] + '\t' + les_data['time'].strftime("%H:%M") + '\t' + les_data['type'] + ' ' +
+                les_data['group'] + '\t' + str(les_data['attendance']) + '\t' + les_data['video'] + ' ' +
+                les_data['news_link'] + '\n\n')
 
 
 print("\033[32mAll work is done! See program report in report.txt\033[0m")
