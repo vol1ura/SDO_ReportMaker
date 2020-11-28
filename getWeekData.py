@@ -24,7 +24,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.firefox.options import Options
 import sys
 
 settings = getsettings()
@@ -33,11 +32,17 @@ password = settings[1].strip()
 browser = settings[4].strip()
 browser_driver_path = settings[5].strip()
 
-# List of days in the week
 begin_date = datetime.now()
+if len(sys.argv) > 1 and sys.argv[1] == 'n':  # if parameter n in command line
+    begin_date += timedelta(7)
+    timetable_link = 'https://sdo.rgsu.net/timetable/teacher/index/week/next'
+else:
+    timetable_link = 'https://sdo.rgsu.net/timetable/teacher'
+
+# List of days in the week
 while begin_date.isoweekday() != 1:
     begin_date -= timedelta(1)
-print('Begin of current week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
+print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
 week_dates = [begin_date + timedelta(i) for i in range(6)]
 
 # =============================================================================
@@ -91,8 +96,8 @@ driver.maximize_window()
 # =============================================================================
 # Go to timetable for the next week and parse it:
 # =============================================================================
-get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
-get_link.click()
+wait.until(ec.presence_of_element_located((By.XPATH, '//div[@class="wrapper"]')))
+driver.get(timetable_link)
 mymes('Timetable is opening', 1)
 pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
 timetable = []  # array of data
