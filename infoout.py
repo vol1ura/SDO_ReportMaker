@@ -17,6 +17,6 @@ def mymes(mes: str, d: float, plus_mark=True):
         print('.', end='')
         sleep(d / k)
     if plus_mark:
-        print('.[+]')
+        print('.\033[32m[+]\033[0m')
     else:
         print('....')

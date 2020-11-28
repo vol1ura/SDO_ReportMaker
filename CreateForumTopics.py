@@ -106,16 +106,9 @@ for pair in pairs:
     pair_cells = pair.find_elements_by_tag_name('td')
     cell3 = pair_cells[2].text  # discipline and dates in a single cell
     discipline = re.sub(r'\s?\d{2}.\d{2}.(\d{2}|\d{4});?', '', cell3).strip()
-    cell_date = []
-    for date in week_dates:
-        if date.strftime("%d.%m.%y") in cell3:
-            cell_date.append(int(date.strftime("%Y")))  # year
-            cell_date.append(int(date.strftime("%m")))  # month
-            cell_date.append(int(date.strftime("%d")))  # day
-            break
-    cell_date.append(int(pair_cells[0].text.strip()[:2]))  # hour
-    cell_date.append(int(pair_cells[0].text.strip()[3:5]))  # minute
-    cell_date = datetime(*cell_date)
+    cell_date = [date for date in week_dates if date.strftime("%d.%m.%y") in cell3][0]
+    cell_date = cell_date.replace(hour=int(pair_cells[0].text.strip()[:2]),
+                                  minute=int(pair_cells[0].text.strip()[3:5]), second=0, microsecond=0)
     # Append collected data to the end of list report_data:
     timetable.append({'time': cell_date, 'group': pair_cells[3].text.strip(),
                       'type': pair_cells[4].text.strip(), 'discipline': discipline})
@@ -149,14 +142,11 @@ for lesson in timetable:
                     # save link to journal of attendance:
                     lesson['journal'] = link_elem.get_attribute('href')
                     break
-
             print('\rProgress: [' + '#' * progress + ' ' * (len(timetable) - progress) + '] ' +
                   str(int(progress / len(timetable) * 100 + 0.5)) + '%', end='')
             progress += 1
             break  # go to next group
 print('\rProgress: [' + '#' * len(timetable) + '] 100%')
-
-f_name = 'forum_links_week_' + begin_date.strftime("%d.%m.%Y") + '.csv'
 
 # =============================================================================
 # Create forum topics for all groups in timetable
@@ -201,7 +191,9 @@ for lesson in timetable[::-1]:  # reverse order for chronological order
     mymes('Saving topic ' + str(k) + ' of ' + str(len(timetable)) + ' (' +
           str(int(k / len(timetable) * 100 + 0.5)) + '%)', 1)
 
-'''fieldnames = ['time', 'group', 'type', 'discipline', 'forum', 'journal']
+'''
+fieldnames = ['time', 'group', 'type', 'discipline', 'forum', 'journal']
+f_name = 'forum_links_week_' + begin_date.strftime("%d.%m.%Y") + '.csv'
 with open(f_name, 'w', newline='', encoding='utf8') as f:
     writer = csv.DictWriter(f, fieldnames=fieldnames)
     writer.writerows(timetable)

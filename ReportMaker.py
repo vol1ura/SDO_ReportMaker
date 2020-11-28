@@ -35,7 +35,7 @@ try:
 except(IOError, OSError) as e:
     print(e)
     print()
-    sys.exit('Error when reading settings.txt !!! Check also file encoding.')
+    sys.exit('\033[31mError when reading settings.txt !!! Check also file encoding.\033[0m')
 
 login = settings[0].strip()
 password = settings[1].strip()
@@ -44,21 +44,18 @@ video_path = settings[3].strip()
 browser = settings[4].strip().upper()
 browser_driver_path = settings[5].strip()
 
-date_wd = datetime.now()
+date_wd = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 if len(sys.argv) < 2:
     date = date_wd
 else:
-    date = [int(x) for x in sys.argv[1].split('.')[::-1]]
-    if date[0] < 50:
-        date[0] = 2000 + date[0]
-    date = datetime(*date, 23, 59, 59)
+    date = datetime.strptime(sys.argv[1], '%d.%m.%' + 'y' if len(sys.argv[1]) < 9 else 'Y')
 date_str = date.strftime("%d.%m.%y")
-print('Date of report:', date_str)
+print('\033[42m\033[30m{} {}\033[0m'.format('Date of report:', date_str))
 
 while date_wd.isoweekday() != 1:
     date_wd -= timedelta(1)
 if date < date_wd or date - date_wd > timedelta(6):
-    sys.exit('Error! Cannot make a report for this date. Check date in settings.txt')
+    sys.exit('\033[31mError! Cannot make a report for this date. Check date in settings.txt\033[0m')
 
 
 def scroll_page(web_element, t=2):
@@ -70,7 +67,7 @@ def free_space():
     fs = float(client.free())
     for i in range(3):
         fs /= 1024
-    print('Free space in your cloud [cloud.rgsu.net]: {0:.2f} Gb'.format(fs))
+    print('Free space in your cloud [cloud.rgsu.net]: \033[32m{0:.1f}\033[0m Gb'.format(fs))
 
 
 def check_path(p_dir: str):
@@ -94,7 +91,7 @@ opts = {
 }
 client = Client(opts)  # using webdav protocol for files uploading
 
-mymes('WebDAV client initialized', 0)
+mymes('WebDAV protocol initialized', 0)
 
 rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
 
@@ -103,13 +100,13 @@ for folder in rem_folders:
     rem_path += folder + '/'
     check_path(rem_path)
 
-files = os.listdir(video_path)
 free_space()
 
 files_count = 0
 callback_count = 0
+files = os.listdir(video_path)
 for file in files:
-    if re.fullmatch(r'Video\d\.\w{,5}', file):
+    if re.fullmatch(r'Video\d\.\w{2,5}', file):
         if not client.check(rem_path + '/' + file):
             client.upload_async(remote_path=rem_path + '/' + file,
                                 local_path=os.path.join(video_path, file),
@@ -130,7 +127,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
-opts.add_argument("--headless")
+# opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 mymes('Driver is starting now', 0, False)
 mymes("Please wait, don't close windows!", 0, False)
@@ -143,7 +140,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     # https://sites.google.com/a/chromium.org/chromedriver/home
     driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
 else:
-    sys.exit('Error! Unknown name of browser. Please check requirements ans file settings.txt')
+    sys.exit('\033[31mError! Unknown name of browser. Please check requirements ans file settings.txt\033[0m')
 
 # driver = webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
 
@@ -175,7 +172,7 @@ driver.maximize_window()
 get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
 get_link.click()
 
-mymes('Timetable is opening', 1)
+mymes('Timetable is opening', 1, False)
 pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
 progress_l = 80 - 14 - 2
 print('Parsing: [' + ' ' * progress_l + '] 0%', end='')
@@ -268,7 +265,7 @@ for les_data in report_data:
     topics = driver.find_elements_by_xpath('//li[@class="topic topic-text-loaded"]')
     for topic in topics:
         topic_title = topic.find_element_by_class_name('topic-title').text
-        if les_data['date'].strftime("%d.%m.%Y") in topic_title and les_data['date'].strftime("%H:%M") in topic_title:
+        if (les_data['date'].strftime("%d.%m.%Y") in topic_title) and (les_data['date'].strftime("%H:%M") in topic_title):
             element = topic.find_element_by_class_name('topic-expand-comments')
             scroll_page(element)
             element.click()  # expand all comments
@@ -351,7 +348,7 @@ while callback_count != files_count:
     print('\rUploading videos [' + '#' * p, end='')
     k = k + 1 if k < int(0.75 / files_count * l + 0.5) else 0
     print('#' * k + ' ' * (l - p - k) + ']', end='')
-    sleep(0.5)
+    sleep(0.3)
 print('\rUploading videos [' + '#' * l + '] 100%')
 mymes('Uploading of all files on rgsu.cloud.net is complete', 0)
 free_space()
@@ -422,7 +419,7 @@ for les_data in report_data:
                     les_data1['news_link'] = les_data['news_link']
 
 
-for les_data in report_data:
+for les_data in report_data:  # REMOVE after testing
     print(les_data)
 
 
@@ -447,7 +444,7 @@ for les_data in report_data:
     driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
 
 
-print('This day you have next lessons:')
+print('This day you have next lessons:')  # REMOVE after testing
 for lesson in report_data:
     print(lesson)
 
@@ -461,7 +458,7 @@ with open('report.txt', 'w') as f:
                 lesson['news_link'] + '\n\n')
 
 
-print("All work is done! See program report in report.txt")
+print("\033[32mAll work is done! See program report in report.txt\033[0m")
 # input('press enter...')
 driver.quit()
 print("Driver Turned Off")
