@@ -16,11 +16,11 @@
 # Lesser General Public License for more details.
 #
 import re
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-from colorama import Fore, Back
+from colorama import Back
 
-from infoout import mymes, getsettings, readfiledata
+from infoout import *
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -161,7 +161,7 @@ get_link.click()
 driver.maximize_window()
 
 # =============================================================================
-# Let's go to forum and count students
+# Let's go to forum and gather students' posts
 # =============================================================================
 today_attendance = []
 for les_data in report_data:
@@ -250,7 +250,7 @@ for les_data in report_data:
     mymes('Journal is comleted', 2)
 
 
-for les_data in report_data:
+for les_data in report_data:  # TODO REMOVE after testing
     print(les_data)
 
 # =============================================================================
@@ -284,7 +284,7 @@ for les_data in report_data:
 # =============================================================================
 # Making news
 # =============================================================================
-for les_data in report_data:
+for les_data in list(report_data):  # TODO check bug with manu news records after using list()
     if 'news_link' not in les_data:  # если ещё не сделали новости и не записали ссылку на новость, то:
         driver.get(les_data['news'])
         mymes('Loading news page', 2)
@@ -313,7 +313,7 @@ for les_data in report_data:
         get_link = wait.until(
             ec.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
         les_data['news_link'] = get_link.get_attribute('href')
-        if les_data['group_n'] > 1:
+        if les_data['group_n'] > 1:  # FIXME something wrong in this place. News generated for each list item
             for les_data1 in report_data:
                 if (les_data['group'] == les_data1['group']) and ('news_link' not in les_data):
                     les_data1['news_link'] = les_data['news_link']
@@ -358,7 +358,7 @@ with open('report.txt', 'w') as f:
                 les_data['news_link'] + '\n\n')
 
 
-print(Fore.GREEN + 'All work is done! See program report in report.txt')
+print(Fore.GREEN + 'All work is done! See program report in' + Fore.CYAN + 'report.txt')
 # input('press enter...')
 driver.quit()
 print("Driver Turned Off")
