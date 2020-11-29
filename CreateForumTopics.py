@@ -19,7 +19,6 @@ import csv
 from colorama import Fore, Back
 from datetime import datetime, timedelta
 from infoout import mymes, getsettings
-import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
@@ -33,11 +32,14 @@ password = settings[1].strip()
 browser = settings[4].strip()
 browser_driver_path = settings[5].strip()
 
-# List of days in the week
 begin_date = datetime.now()
+if len(sys.argv) > 1 and sys.argv[1] == 'n':  # if parameter n in command line
+    begin_date += timedelta(7)
+
+# List of days in the week
 while begin_date.isoweekday() != 1:
     begin_date -= timedelta(1)
-print('Begin of current week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
+print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
 week_dates = [begin_date + timedelta(i) for i in range(6)]
 
 # =============================================================================
@@ -62,7 +64,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     # https://sites.google.com/a/chromium.org/chromedriver/home
     driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
 else:
-    sys.exit('Error! Unknown name of browser. Please check requirements ans file settings.txt')
+    sys.exit(Fore.RED + 'Error! Unknown name of browser. Please check requirements ans file settings.txt')
 
 # driver = webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
 
@@ -146,7 +148,7 @@ print('This week you have next lessons:')
 for lesson in timetable:
     print(lesson)
 
-print(Fore.GREEN + "All work is done! See program report in report.txt")
+print(Fore.GREEN + "All work is done!")
 # input('press enter...')
 driver.quit()
 print("Driver Turned Off")

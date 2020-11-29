@@ -54,7 +54,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
-# opts.add_argument("--headless")
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 mymes('Driver is starting now', 0, False)
 mymes("Please wait, don't close windows!", 0, False)
@@ -109,8 +109,16 @@ for pair in pairs:
     cell_date = [date for date in week_dates if date.strftime("%d.%m.%y") in cell3][0]
     cell_date = cell_date.replace(hour=int(pair_cells[0].text.strip()[:2]),
                                   minute=int(pair_cells[0].text.strip()[3:5]), second=0, microsecond=0)
+    # counting lesson number for each day int timetable:
+    if (len(timetable) == 0) or (timetable[-1]['time'].day != cell_date.day):
+        pair_n = 1  # reset counter to 1 every new day
+    else:
+        if (timetable[-1]['time'].hour == cell_date.hour) and (timetable[-1]['time'].minute == cell_date.minute):
+            pair_n = timetable[-1]['pair_n']  # increase pair counter - class number on that day
+        else:
+            pair_n = timetable[-1]['pair_n'] + 1
     # Append collected data to the end of list report_data:
-    timetable.append({'time': cell_date, 'group': pair_cells[3].text.strip(),
+    timetable.append({'time': cell_date, 'pair_n': pair_n, 'group': pair_cells[3].text.strip(),
                       'type': pair_cells[4].text.strip(), 'discipline': discipline})
 
 # =============================================================================
@@ -126,11 +134,11 @@ courses = driver.find_elements_by_class_name("lesson_table")
 # finding links to forum for course
 print('Progress: [' + ' ' * len(timetable) + '] 0%', end='')
 progress = 0
-for lesson in timetable:
+for lesson in list(timetable):
     for course in courses:
         course_text = course.find_element_by_class_name("lesson_options").text
         # checking that left table pane contains our group:
-        if lesson['group'] in course_text and lesson['discipline'] in course_text:
+        if (lesson['group'] in course_text) and (lesson['discipline'] in course_text):
             # finding link to page of this course
             link = course.find_element_by_id("lesson_title").find_element_by_tag_name('a').get_attribute('href')
             course_id = re.search(r'\d+$', link)[0]
@@ -142,11 +150,15 @@ for lesson in timetable:
                     # save link to journal of attendance:
                     lesson['journal'] = link_elem.get_attribute('href') + '/day/all'
                     break
-            print('\rProgress: [' + '#' * progress + ' ' * (len(timetable) - progress) + '] ' +
-                  str(int(progress / len(timetable) * 100 + 0.5)) + '%', end='')
+            print('\rProgress: [' + Fore.BLUE + '■' * progress + ' ' * (len(timetable) - progress) +
+                  Fore.WHITE + '] ' + str(int(progress / len(timetable) * 100 + 0.5)) + '%', end='')
             progress += 1
             break  # go to next group
-print('\rProgress: [' + '#' * len(timetable) + '] 100%')
+    else:  # in case of error of sdo - group is missing in list My courses - remove this group from the list
+        print(Fore.RED + '\rWarning! Group ' + lesson['group'] + ' is missing in your list "My courses".')
+        print('You need to address to technical support. Now this group will be removed from data file.')
+        timetable.remove(lesson)
+print('\rProgress: [' + Fore.BLUE + '■' * len(timetable) + Fore.WHITE + '] ' + Fore.GREEN + '100%')
 
 # Counting number of lessons with group in one day
 
@@ -156,15 +168,15 @@ for i in range(len(timetable)):
         j = i + 1
         while (j < len(timetable)) and (timetable[i]['time'].day == timetable[j]['time'].day):
             if timetable[i]['group'] == timetable[j]['group']:
-                group_n += 1
+                group_n += 1  # counting through each day
             j += 1
         j = i
         while (j < len(timetable)) and (timetable[i]['time'].day == timetable[j]['time'].day):
             if timetable[i]['group'] == timetable[j]['group']:
-                timetable[j]['group_n'] = group_n
+                timetable[j]['group_n'] = group_n  # then write the counter to every group record
             j += 1
 
-fieldnames = ['time', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
+fieldnames = ['time', 'pair_n', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
 f_name = 'sdoweek_' + begin_date.strftime("%d_%m_%y") + '.csv'
 with open(f_name, 'w', newline='', encoding='utf8') as f:
     writer = csv.DictWriter(f, fieldnames=fieldnames)

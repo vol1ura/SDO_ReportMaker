@@ -18,7 +18,7 @@
 import re
 from datetime import datetime, timedelta
 
-from colorama import Fore
+from colorama import Fore, Back
 
 from infoout import mymes
 import os
@@ -70,7 +70,7 @@ def free_space():
     fs = float(client.free())
     for i in range(3):
         fs /= 1024
-    print('Free space in your cloud [cloud.rgsu.net]: \033[32m{0:.1f}\033[0m Gb'.format(fs))
+    print('Free space in your cloud [cloud.rgsu.net]: {0:.1f} Gb'.format(fs))
 
 
 def check_path(p_dir: str):
@@ -82,7 +82,7 @@ def check_path(p_dir: str):
 # =============================================================================
 # Unloading video files on cloud.sdo.net
 # =============================================================================
-opts = {
+opts = {  # TODO сделать отдельный модуль загрузки и получения ссылкок - через селениум!!!
     'webdav_hostname': token,
     'webdav_login': login,
     'webdav_password': password,
@@ -165,7 +165,7 @@ driver.maximize_window()
 # Go to timetable and parse it:
 # =============================================================================
 get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
-get_link.click()
+get_link.click()  # TODO заменить этот блок на чтение из файла с данными + сделать обработку для этой даты!!!
 
 mymes('Timetable is opening', 1, False)
 pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
@@ -198,7 +198,7 @@ for pair in pairs:
                 (report_data[-1]['date'].minute != cell_date.minute):
             pair_num += 1
         # подсчёт количества пар с группой
-        for rep in report_data:
+        for rep in report_data: # FIXME здесь баг, теперь лучше читать из файла csv, там верно
             if rep['group'] == group:
                 rep['group_n'] += 1
                 group_num = rep['group_n']
@@ -217,7 +217,7 @@ print('\rParsing: [' + '#' * progress_l + '] 100%')
 # =============================================================================
 # Go to "My Courses" page - it downloads very long !!!
 # =============================================================================
-mymes('Script working. Please, wait', 0, False)
+mymes('Script working. Please, wait', 0, False) # TODO это блок не нужен!!! всё будет в общем файле
 driver.get(driver.find_element_by_xpath('//div[@class="wrapper"]/ul/li[2]/a').get_attribute('href'))
 mymes('Loading All courses page', 1)  # pause and wait until all elements located:
 wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))  # checking that page is downloaded
@@ -409,7 +409,7 @@ for les_data in report_data:  # REMOVE after testing
 # Open timetable page to write report        
 # =============================================================================
 get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
-get_link.click()
+get_link.click() # TODO сделать переход по прямой ссылке
 for les_data in report_data:
     pairs = driver.find_elements_by_class_name("tt-row")
     report_button = pairs[les_data['row']].find_element_by_tag_name('button')
@@ -417,8 +417,8 @@ for les_data in report_data:
     mymes('Adding report', 2)
     report_button.click()
     if 'attendance' not in les_data:
-        print('Attention! Attendance for ' + les_data['group'] + ' has not been calculated!')
-        print('Verify that journals are filled out correctly and make corrections manually.')
+        print(Back.RED + 'Attention! ' + 'Attendance for ' + les_data['group'] + ' has not been calculated!')
+        print(Fore.RED + 'Verify that journals are filled out correctly and make corrections manually.')
         les_data['attendance'] = 0
     driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data['attendance']))
     driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
@@ -440,7 +440,7 @@ with open('report.txt', 'w') as f:
                 les_data['news_link'] + '\n\n')
 
 
-print("\033[32mAll work is done! See program report in report.txt\033[0m")
+print(Fore.GREEN + 'All work is done! See program report in report.txt')
 # input('press enter...')
 driver.quit()
 print("Driver Turned Off")
