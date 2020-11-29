@@ -162,8 +162,11 @@ get_link.click()
 driver.maximize_window()
 
 # =============================================================================
-# Go to timetable and parse it:
+# Get data from timetable csv file for current day
 # =============================================================================
+
+
+
 get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
 get_link.click()  # TODO заменить этот блок на чтение из файла с данными + сделать обработку для этой даты!!!
 

@@ -15,15 +15,13 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-import csv
-from colorama import Fore, Back
-from datetime import datetime, timedelta
-from infoout import mymes, getsettings
+from colorama import Back
+from datetime import timedelta
+from infoout import *
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.firefox.options import Options
 import sys
 
 settings = getsettings()
@@ -41,6 +39,8 @@ while begin_date.isoweekday() != 1:
     begin_date -= timedelta(1)
 print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
 week_dates = [begin_date + timedelta(i) for i in range(6)]
+
+timetable = readfiledata(begin_date)
 
 # =============================================================================
 # Browser driver initialization
@@ -90,17 +90,6 @@ get_link.click()
 
 driver.maximize_window()
 
-timetable = []
-fieldnames = ['s_time', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
-f_name = 'sdoweek_' + begin_date.strftime("%d_%m_%y") + '.csv'
-with open(f_name, 'r', newline='', encoding='utf8') as f:
-    reader = csv.DictReader(f, fieldnames=fieldnames)
-    for row in reader:
-        timetable.append(row)
-
-for lesson in timetable:
-    lesson['time'] = datetime.strptime(lesson['s_time'], '%Y-%m-%d %H:%M:%S')
-
 # =============================================================================
 # Create forum topics for all groups in timetable
 # =============================================================================
@@ -122,7 +111,7 @@ for lesson in timetable[::-1]:  # reverse order for chronological order
     frame_id = driver.find_element_by_xpath('//iframe[starts-with(@id, "mce_")]').get_attribute('id')
     driver.switch_to.frame(frame_id)
     topic_text = '<p><span style="font-size: large;">Уважаемые студенты, данная тема предназначена только ' + \
-                 'для отметки посещения пары с' + lesson['time'].strftime("%H:%M") + ' по ' + \
+                 'для отметки посещения пары с ' + lesson['time'].strftime("%H:%M") + ' по ' + \
                  (lesson['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + '!</span></p>' + \
                  '<p>Отметка производится <strong>строго</strong> во время занятия ' + \
                  '(<strong>автоматически проверяется дата и время создания сообщения</strong>). ' + \
@@ -143,10 +132,6 @@ for lesson in timetable[::-1]:  # reverse order for chronological order
     k += 1
     mymes('Saving topic ' + str(k) + ' of ' + str(len(timetable)) + ' (' +
           str(int(k / len(timetable) * 100 + 0.5)) + '%)', 1)
-
-print('This week you have next lessons:')
-for lesson in timetable:
-    print(lesson)
 
 print(Fore.GREEN + "All work is done!")
 # input('press enter...')
