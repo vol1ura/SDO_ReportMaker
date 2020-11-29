@@ -59,58 +59,58 @@ for les_data in list(report_data):
         report_data.remove(les_data)
 
 
-def scroll_page(web_element, t=2):
+def scroll_page(web_element, t=2.0):
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', web_element)
     sleep(t)
 
 
-def free_space():
-    fs = float(client.free())
-    for i in range(3):
-        fs /= 1024
-    color = Fore.RED if fs < 10 else Fore.GREEN
-    print('Free space in your cloud [cloud.rgsu.net]:' + color + '{0:.1f}'.format(fs) + Fore.WHITE + ' Gb')
-
-
-def check_path(p_dir: str):
-    if not client.check(p_dir):
-        client.mkdir(p_dir)
-        print('Directory [{}] created.'.format(p_dir))
+# def free_space():
+#     fs = float(client.free())
+#     for i in range(3):
+#         fs /= 1024
+#     color = Fore.RED if fs < 10 else Fore.GREEN
+#     print('Free space in your cloud [cloud.rgsu.net]:' + color + '{0:.1f}'.format(fs) + Fore.WHITE + ' Gb')
+#
+#
+# def check_path(p_dir: str):
+#     if not client.check(p_dir):
+#         client.mkdir(p_dir)
+#         print('Directory [{}] created.'.format(p_dir))
 
 
 # =============================================================================
 # Unloading video files on cloud.sdo.net
 # =============================================================================
-opts = {  # TODO сделать отдельный модуль загрузки и получения ссылкок - через селениум!!!
-    'webdav_hostname': token,
-    'webdav_login': login,
-    'webdav_password': password,
-}
-client = Client(opts)  # using webdav protocol for files uploading
-
-mymes('WebDAV protocol initialized', 0)
-
-rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
-
-rem_path = ''
-for folder in rem_folders:
-    rem_path += folder + '/'
-    check_path(rem_path)
-
-free_space()
-
-files = os.listdir(video_path)
-mymes('Uploading videos. Please wait!', 0, False)
-for file in files:
-    if re.fullmatch(r'Video\d\.\w{2,5}', file):
-        if not client.check(rem_path + '/' + file):
-            client.upload_sync(remote_path=rem_path + '/' + file, local_path=os.path.join(video_path, file))
-            mymes('File [' + file + '] is unloaded', 0)
-        else:
-            print('File [' + file + '] has already been uploaded and will be skipped.')
-
-mymes('Uploading of all files on rgsu.cloud.net is complete', 0)
-free_space()
+# opts = {  # TODO сделать отдельный модуль загрузки и получения ссылкок - через селениум!!!
+#     'webdav_hostname': token,
+#     'webdav_login': login,
+#     'webdav_password': password,
+# }
+# client = Client(opts)  # using webdav protocol for files uploading
+#
+# mymes('WebDAV protocol initialized', 0)
+#
+# rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
+#
+# rem_path = ''
+# for folder in rem_folders:
+#     rem_path += folder + '/'
+#     check_path(rem_path)
+#
+# free_space()
+#
+# files = os.listdir(video_path)
+# mymes('Uploading videos. Please wait!', 0, False)
+# for file in files:
+#     if re.fullmatch(r'Video\d\.\w{2,5}', file):
+#         if not client.check(rem_path + '/' + file):
+#             client.upload_sync(remote_path=rem_path + '/' + file, local_path=os.path.join(video_path, file))
+#             mymes('File [' + file + '] is unloaded', 0)
+#         else:
+#             print('File [' + file + '] has already been uploaded and will be skipped.')
+#
+# mymes('Uploading of all files on rgsu.cloud.net is complete', 0)
+# free_space()
 
 # =============================================================================
 # Browser driver initialization
@@ -134,7 +134,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     # https://sites.google.com/a/chromium.org/chromedriver/home
     driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
 else:
-    sys.exit('\033[31mError! Unknown name of browser. Please check requirements ans file settings.txt\033[0m')
+    sys.exit(Fore.RED + 'Error! Unknown name of browser. Please check requirements ans file settings.txt')
 
 # driver = webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
 
@@ -163,6 +163,7 @@ driver.maximize_window()
 # =============================================================================
 # Let's go to forum and count students
 # =============================================================================
+today_attendance = []
 for les_data in report_data:
     # Go to forum. Take lesson from timetable
     driver.get(les_data['forum'])
@@ -172,7 +173,8 @@ for les_data in report_data:
     topics = driver.find_elements_by_xpath('//li[@class="topic topic-text-loaded"]')
     for topic in topics:
         topic_title = topic.find_element_by_class_name('topic-title').text
-        if (les_data['date'].strftime("%d.%m.%Y") in topic_title) and (les_data['date'].strftime("%H:%M") in topic_title):
+        if (les_data['time'].strftime("%d.%m.%Y") in topic_title) and \
+                (les_data['time'].strftime("%H:%M") in topic_title):
             element = topic.find_element_by_class_name('topic-expand-comments')
             scroll_page(element)
             element.click()  # expand all comments
@@ -182,16 +184,20 @@ for les_data in report_data:
                 comment_date = comment.find_element_by_tag_name('time').get_attribute('datetime')
                 comment_date = datetime.fromisoformat(comment_date)
                 comment_name = re.search(r'[a-zа-яё\-\s]+', comment.text, re.I)[0]
-                if les_data['date'] <= comment_date <= les_data['date'] + timedelta(hours=1, minutes=30):
+                if les_data['time'] <= comment_date <= les_data['time'] + timedelta(hours=1, minutes=30):
                     attendance_set.add(comment_name)
     print(attendance_set)
-    # =============================================================================
-    # Let's go to attendance page of current lesson type
-    # =============================================================================
+    les_data['group_a'] = attendance_set
+
+
+# =============================================================================
+# Let's go to attendance page of current lesson type
+# =============================================================================
+for les_data in report_data:
     attendance_count = 0  # attendance counter
     driver.get(les_data['journal'])
     mymes('Loading journal (attendance page)', 1)
-    # Preparing journal for parsing and filling up ###########################################################
+    # ######### Preparing journal for parsing and filling up ###########################################################
     element = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[3]')))
     element.click()  # close menu panel
     # Open drop-down menu
@@ -206,7 +212,7 @@ for les_data in report_data:
             break
     driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click()  # filter button click
     mymes('Filling attendance of students', 1, False)
-    # ###########################################################################################################
+    # ######## End of preparation page #################################################################################
     # Get head of journal table:
     table_head = wait.until(ec.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
     for cell_head in table_head.find_elements_by_tag_name('th')[1:-2]:
@@ -216,17 +222,17 @@ for les_data in report_data:
         for id_cell in id_column:
             if id_cell.text == 'Был':
                 break
-        else:  # Заполняем столбец галочками о посещениях и ставим дату
+        else:  # If all column is empty then change date of column and fill it by clicking checkboxes:
             element = driver.find_element_by_xpath('//a[contains(@onclick, "' + id_th_day + '")]')
             scroll_page(element, 1)
-            element.click()
+            element.click()  # select edit mode of date field
             element = driver.find_element_by_xpath('//input[contains(@id, "' + id_th_day + '")]')
             element.send_keys(Keys.BACKSPACE * 10)
-            element.send_keys(les_data['date'].strftime("%d.%m.%Y"))  # Set date for column
+            element.send_keys(les_data['time'].strftime("%d.%m.%Y"))  # Set date for column
             # Check students in journal and count them
             journal_rows = driver.find_elements_by_xpath('//tr[contains(@class, "fio-cell")]')
             for journal_row in journal_rows:
-                if journal_row.find_element_by_tag_name('b').text in attendance_set:
+                if journal_row.find_element_by_tag_name('b').text in les_data['group_a']:
                     scroll_page(journal_row, 1)
                     attendance_count += 1
                     get_link = journal_row.find_element_by_tag_name('a').get_attribute('href')
@@ -259,7 +265,7 @@ driver.find_element_by_id('password').send_keys(password)
 driver.find_element_by_id('submit-form').click()
 mymes('Authorization', 2)
 
-driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
+driver.get('https://cloud.rgsu.net/apps/files/?dir=/') #+ '/'.join(rem_folders))  # FIXME
 fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
 video_links = []
 share_buttons = fileList.find_elements_by_xpath('//td[2]/a/span[2]/a[1]/span[1]')

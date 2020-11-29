@@ -4,14 +4,13 @@ from datetime import datetime
 import sys
 from time import sleep
 
-# if __name__ == '__name__':
-
 init(autoreset=True)
 
 
 def mymes(mes: str, d: float, plus_mark=True):
     """
     Information output to console. If plus_mark is False then the ending plus is not typing.
+
     :param mes: str
     :param d: float
     :param plus_mark: bool
@@ -27,7 +26,13 @@ def mymes(mes: str, d: float, plus_mark=True):
         print('...')
 
 
-def getsettings(f_name):
+def getsettings(f_name: str):
+    """
+    Function for reading settings files and get data as list of strings.
+
+    :param f_name: str
+    :return: list
+    """
     try:
         with open(f_name) as f:
             s = f.readlines()
@@ -39,6 +44,14 @@ def getsettings(f_name):
 
 
 def readfiledata(file_date: datetime):
+    """
+    Function returns collected data from teacher's timetable and list of courses on sdo.rgsu.net
+    It is used for transfer data from one module to another.
+    Parameter file_date is a begin of week for which we run modules.
+
+    :param file_date: datetime
+    :return: list
+    """
     table = []
     fieldnames = ['s_time', 'pair_n', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
     f_name = 'sdoweek_' + file_date.strftime("%d_%m_%y") + '.csv'
@@ -54,5 +67,6 @@ def readfiledata(file_date: datetime):
     for row in table:
         row['time'] = datetime.strptime(row['s_time'], '%Y-%m-%d %H:%M:%S')
         del row['s_time']
-    mymes('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported', 0)
+    print('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported' +
+          '.' * (80 - len(f_name) - 21) + Fore.GREEN + '[+]')
     return table
