@@ -24,7 +24,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 import sys
 
-settings = getsettings()
+settings = getsettings('settings.txt')
 login = settings[0].strip()
 password = settings[1].strip()
 browser = settings[4].strip()

@@ -26,7 +26,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 import sys
 
-settings = getsettings()
+settings = getsettings('settings.txt')
 login = settings[0].strip()
 password = settings[1].strip()
 browser = settings[4].strip()
@@ -182,7 +182,7 @@ with open(f_name, 'w', newline='', encoding='utf8') as f:
     writer = csv.DictWriter(f, fieldnames=fieldnames)
     writer.writerows(timetable)
 
-print(Fore.GREEN + "All work is done! See program report in csv file")
+print(Fore.GREEN + 'All work is done! See program report in' + Fore.CYAN + f_name + Fore.GREEN + 'file.')
 # input('press enter...')
 driver.quit()
 print("Driver Turned Off")

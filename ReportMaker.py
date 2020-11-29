@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 
 from colorama import Fore, Back
 
-from infoout import mymes
+from infoout import mymes, getsettings, readfiledata
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -32,14 +32,7 @@ from time import sleep
 from webdav3.client import Client
 # ============================================================================
 
-try:
-    with open('settings.txt', encoding='utf8') as f:
-        settings = f.readlines()
-except(IOError, OSError) as e:
-    print(e)
-    print()
-    sys.exit(Fore.RED + 'Error when reading settings.txt !!! Check also file encoding.')
-
+settings = getsettings('settings.txt')
 login = settings[0].strip()
 password = settings[1].strip()
 token = settings[2].strip()
@@ -53,12 +46,17 @@ if len(sys.argv) < 2:
 else:
     date = datetime.strptime(sys.argv[1], '%d.%m.%' + 'y' if len(sys.argv[1]) < 9 else 'Y')
 date_str = date.strftime("%d.%m.%y")
-print('\033[42m\033[30m{} {}\033[0m'.format('Date of report:', date_str))
+print('Date of report:' + Fore.BLACK + Back.GREEN + date_str)
 
 while date_wd.isoweekday() != 1:
     date_wd -= timedelta(1)
 if date < date_wd or date - date_wd > timedelta(6):
     sys.exit(Fore.RED + 'Error! Cannot make a report for this date. Check date in settings.txt')
+
+report_data = readfiledata(date_wd)
+for les_data in list(report_data):
+    if les_data['time'].day != date.day:
+        report_data.remove(les_data)
 
 
 def scroll_page(web_element, t=2):
@@ -70,7 +68,8 @@ def free_space():
     fs = float(client.free())
     for i in range(3):
         fs /= 1024
-    print('Free space in your cloud [cloud.rgsu.net]: {0:.1f} Gb'.format(fs))
+    color = Fore.RED if fs < 10 else Fore.GREEN
+    print('Free space in your cloud [cloud.rgsu.net]:' + color + '{0:.1f}'.format(fs) + Fore.WHITE + ' Gb')
 
 
 def check_path(p_dir: str):
@@ -160,96 +159,6 @@ get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-ro
 get_link.click()
 
 driver.maximize_window()
-
-# =============================================================================
-# Get data from timetable csv file for current day
-# =============================================================================
-
-
-
-get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="wrapper"]/ul/li[7]/a')))
-get_link.click()  # TODO заменить этот блок на чтение из файла с данными + сделать обработку для этой даты!!!
-
-mymes('Timetable is opening', 1, False)
-pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
-progress_l = 80 - 14 - 2
-print('Parsing: [' + ' ' * progress_l + '] 0%', end='')
-tt_row = 0  # rows counter in time table
-pair_num = 0  # pair counter - class number on that day
-report_data = []  # array of data
-for pair in pairs:
-    # Read lines, parse discipline, time, date and type
-    pair_cells = pair.find_elements_by_tag_name('td')
-    # if date on current line in cell 3 - it is our date
-    cell3 = pair_cells[2].text  # discipline and dates in a single cell
-    if date_str in cell3:
-        group = pair_cells[3].text.strip()  # group
-        group_num = 1  # counter of lessons with this group
-        lesson_type = pair_cells[4].text.strip()  # lesson type
-        discipline = re.sub(r'\s?\d{2}.\d{2}.(\d{2}|\d{4});?', '', cell3).strip()
-        try:
-            cell_date = date.replace(hour=int(pair_cells[0].text.strip()[:2]),
-                                     minute=int(pair_cells[0].text.strip()[3:5]),
-                                     second=0, microsecond=0)
-        except:
-            print('Bad time format: [ {} ]'.format(pair_cells[0].text.strip()[3:5]))
-            print('Check time for:', group, pair_cells[5].text.strip(), pair_cells[6].text.strip())
-            cell_date = date.replace(hour=8, minute=0, second=0, microsecond=0)
-        # проверка, что предыдущая запись в таблице - пара в то же время, при несовпадении увеличиваем счётчик pair_num
-        if (len(report_data) == 0) or \
-                (report_data[-1]['date'].hour != cell_date.hour) or \
-                (report_data[-1]['date'].minute != cell_date.minute):
-            pair_num += 1
-        # подсчёт количества пар с группой
-        for rep in report_data: # FIXME здесь баг, теперь лучше читать из файла csv, там верно
-            if rep['group'] == group:
-                rep['group_n'] += 1
-                group_num = rep['group_n']
-        # writing all collected data to dictionary and appending it to the back of list report_data:
-        report_data.append({'row': tt_row, 'pair': pair_num,
-                            'group_n': group_num, 'group': group,
-                            'type': lesson_type, 'discipline': discipline,
-                            'date': cell_date, 'news': ''})
-    tt_row += 1
-    print('\rParsing: [' + '#' * (tt_row * progress_l // len(pairs)) +
-          ' ' * ((len(pairs) - tt_row) * progress_l // len(pairs)) + '] ' +
-          str(int(tt_row / len(pairs) * 100 + 0.5)) + '%', end='')
-
-print('\rParsing: [' + '#' * progress_l + '] 100%')
-
-# =============================================================================
-# Go to "My Courses" page - it downloads very long !!!
-# =============================================================================
-mymes('Script working. Please, wait', 0, False) # TODO это блок не нужен!!! всё будет в общем файле
-driver.get(driver.find_element_by_xpath('//div[@class="wrapper"]/ul/li[2]/a').get_attribute('href'))
-mymes('Loading All courses page', 1)  # pause and wait until all elements located:
-wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))  # checking that page is downloaded
-progress_l = 80 - 14 - 2
-progress = 0
-print('Parsing: [' + ' ' * progress_l + '] 0%', end='')
-for les_data in report_data:
-    # checking group and finding links to group's journal
-    for lesson in driver.find_elements_by_class_name("lesson_table"):
-        # checking that left table pane contains our group:
-        if les_data['group'] in lesson.find_element_by_class_name("lesson_options").text:
-            # finding link to page of this course
-            link = lesson.find_element_by_id("lesson_title").find_element_by_tag_name('a').get_attribute('href')
-            course_id = re.search(r'\d+$', link)[0]
-            les_data['news'] = 'https://sdo.rgsu.net/news/index/index/subject_id/' + course_id + '/subject/subject'
-            les_data['forum'] = 'https://sdo.rgsu.net/forum/subject/subject/' + course_id
-            # finding link to journal of our lesson_type
-            for items in lesson.find_elements_by_class_name("hm-subject-list-item-description-lesson-title"):
-                link_elem = items.find_element_by_tag_name('a')
-                if les_data['type'][:6] in link_elem.text:  # if lesson types matches
-                    # save link to journal of attendance:
-                    les_data['journal'] = link_elem.get_attribute('href') + '/day/all'
-                    break
-            break  # go to next group
-    progress += 1
-    print('\rParsing: [' + '#' * (progress * progress_l // len(report_data)) +
-          ' ' * ((len(report_data) - progress) * progress_l // len(report_data)) + '] ' +
-          str(int(progress / len(report_data) * 100 + 0.5)) + '%', end='')
-print('\rParsing: [' + '#' * progress_l + '] 100%')
 
 # =============================================================================
 # Let's go to forum and count students
@@ -404,7 +313,7 @@ for les_data in report_data:
                     les_data1['news_link'] = les_data['news_link']
 
 
-for les_data in report_data:  # REMOVE after testing
+for les_data in report_data:  # TODO REMOVE after testing
     print(les_data)
 
 
@@ -412,7 +321,7 @@ for les_data in report_data:  # REMOVE after testing
 # Open timetable page to write report        
 # =============================================================================
 get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
-get_link.click() # TODO сделать переход по прямой ссылке
+get_link.click()  # TODO сделать переход по прямой ссылке
 for les_data in report_data:
     pairs = driver.find_elements_by_class_name("tt-row")
     report_button = pairs[les_data['row']].find_element_by_tag_name('button')
@@ -429,7 +338,7 @@ for les_data in report_data:
     driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
 
 
-print('This day you have next lessons:')  # REMOVE after testing
+print('This day you have next lessons:')  # TODO REMOVE after testing
 for les_data in report_data:
     print(les_data)
 
