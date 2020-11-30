@@ -58,6 +58,8 @@ for les_data in list(report_data):
     if les_data['time'].day != date.day:
         report_data.remove(les_data)
 
+report_data.sort(key=lambda les: les['group'])
+
 
 def scroll_page(web_element, t=2.0):
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', web_element)
@@ -164,12 +166,15 @@ driver.maximize_window()
 # Let's go to forum and gather students' posts
 # =============================================================================
 today_attendance = []
+prev_group = ''
 for les_data in report_data:
-    # Go to forum. Take lesson from timetable
-    driver.get(les_data['forum'])
+    if les_data['group'] != prev_group:
+        prev_group = les_data['group']
+        # Go to forum. Take lesson from timetable
+        driver.get(les_data['forum'])
+        mymes('Checking attendance of students', 1, False)
     attendance_set = set([])
     # Parse students
-    mymes('Checking attendance of students', 1, False)
     topics = driver.find_elements_by_xpath('//li[@class="topic topic-text-loaded"]')
     for topic in topics:
         topic_title = topic.find_element_by_class_name('topic-title').text
@@ -186,33 +191,36 @@ for les_data in report_data:
                 comment_name = re.search(r'[a-zа-яё\-\s]+', comment.text, re.I)[0]
                 if les_data['time'] <= comment_date <= les_data['time'] + timedelta(hours=1, minutes=30):
                     attendance_set.add(comment_name)
-    print(attendance_set)
     les_data['group_a'] = attendance_set
-
 
 # =============================================================================
 # Let's go to attendance page of current lesson type
 # =============================================================================
+prev_group = ''
 for les_data in report_data:
     attendance_count = 0  # attendance counter
-    driver.get(les_data['journal'])
-    mymes('Loading journal (attendance page)', 1)
-    # ######### Preparing journal for parsing and filling up ###########################################################
+    if les_data['group'] != prev_group:
+        driver.get(les_data['journal'])
+        prev_group = les_data['group']
+        mymes('Loading attendance journal', 1)
+        # ######### Preparing journal for parsing and filling up #######################################################
+        # Open drop-down menu
+        select_group = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
+        # cycle through elements in drop-down list to find our group
+        element = select_group.find_elements_by_tag_name("option")  # groups in drop-down menu
+        if len(element) > 2:  # if only one group in journal drop-down menu then this step will be skipped:
+            for list_item in element:  # select group in menu:
+                if les_data['group'] in list_item.text:
+                    select_group.click()  # click dropdown list
+                    list_item.click()  # click group
+                    break
+            driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click()  # filter button
+            sleep(1.5)
+    mymes('Filling attendance journal for ' + les_data['group'], 0, False)
     element = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[3]')))
+    scroll_page(element, 1)
     element.click()  # close menu panel
-    # Open drop-down menu
-    select_group = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
-    # cycle through elements in drop-down list to find our group
-    for list_item in select_group.find_elements_by_tag_name("option"):
-        # if group is founded, open journal and counting attendance
-        if les_data['group'] in list_item.text:
-            select_group.click()  # click dropdown list
-            list_item.click()  # click group
-            print(list_item.text)  # Print selected group name
-            break
-    driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click()  # filter button click
-    mymes('Filling attendance of students', 1, False)
-    # ######## End of preparation page #################################################################################
+    # ######## End of preparation page #############################################################################
     # Get head of journal table:
     table_head = wait.until(ec.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
     for cell_head in table_head.find_elements_by_tag_name('th')[1:-2]:
@@ -244,10 +252,10 @@ for les_data in report_data:
     element.click()  # open meny panel
     element = driver.find_element_by_xpath('//input[@value="Сохранить"]')
     les_data['attendance'] = attendance_count
-    scroll_page(element)
+    scroll_page(element, 1)
     element.click()
     driver.find_elements_by_xpath('//div/button[1]/span')[0].click()  # /html/body/div[2]/div[3]/div/button[1]/span
-    mymes('Journal is comleted', 2)
+    mymes('Journal is completed', 2)
 
 
 for les_data in report_data:  # TODO REMOVE after testing
@@ -284,7 +292,7 @@ for les_data in report_data:
 # =============================================================================
 # Making news
 # =============================================================================
-for les_data in list(report_data):  # TODO check bug with manu news records after using list()
+for les_data in list(report_data):  # TODO check bug with many news records after using list()
     if 'news_link' not in les_data:  # если ещё не сделали новости и не записали ссылку на новость, то:
         driver.get(les_data['news'])
         mymes('Loading news page', 2)
@@ -327,7 +335,7 @@ for les_data in report_data:  # TODO REMOVE after testing
 # Open timetable page to write report        
 # =============================================================================
 get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
-get_link.click()  # TODO сделать переход по прямой ссылке
+get_link.click()  # TODO сделать переход по прямой ссылке https://sdo.rgsu.net/timetable/teacher
 for les_data in report_data:
     pairs = driver.find_elements_by_class_name("tt-row")
     report_button = pairs[les_data['row']].find_element_by_tag_name('button')

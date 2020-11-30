@@ -53,7 +53,7 @@ def readfiledata(file_date: datetime):
     :return: list
     """
     table = []
-    fieldnames = ['s_time', 'pair_n', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
+    fieldnames = ['row', 's_time', 'pair_n', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
     f_name = 'sdoweek_' + file_date.strftime("%d_%m_%y") + '.csv'
     try:
         with open(f_name, 'r', newline='', encoding='utf8') as f:

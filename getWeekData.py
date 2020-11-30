@@ -121,6 +121,9 @@ for pair in pairs:
     timetable.append({'time': cell_date, 'pair_n': pair_n, 'group': pair_cells[3].text.strip(),
                       'type': pair_cells[4].text.strip(), 'discipline': discipline})
 
+for i in range(len(timetable)):
+    timetable[i]['row'] = i  # tt-row of timetable in field 'row'
+
 # =============================================================================
 # Go to "My Courses" page - it downloads very long !!!
 # =============================================================================
@@ -176,7 +179,7 @@ for i in range(len(timetable)):
                 timetable[j]['group_n'] = group_n  # then write the counter to every group record
             j += 1
 
-fieldnames = ['time', 'pair_n', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
+fieldnames = ['row', 'time', 'pair_n', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
 f_name = 'sdoweek_' + begin_date.strftime("%d_%m_%y") + '.csv'
 with open(f_name, 'w', newline='', encoding='utf8') as f:
     writer = csv.DictWriter(f, fieldnames=fieldnames)
