@@ -87,7 +87,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
-# opts.add_argument("--headless")  # TODO uncomment after testing
+opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
 mymes('Driver is starting now', 0, False)
 mymes("Please wait, don't close windows!", 0, False)
@@ -314,10 +314,6 @@ for les_data in report_data:
     driver.find_elements_by_xpath('//div/button[1]/span')[0].click()  # /html/body/div[2]/div[3]/div/button[1]/span
     mymes('Journal is completed', 2)
 
-
-for les_data in report_data:  # TODO REMOVE after testing
-    print(les_data)
-
 # =============================================================================
 # Making news
 # =============================================================================
@@ -358,11 +354,6 @@ for les_data in report_data:
         prev_group = les_data['group']
         prev_link = les_data['news_link']
 
-
-for les_data in report_data:  # TODO REMOVE after testing
-    print(les_data)
-
-
 # =============================================================================
 # Open timetable page to write report        
 # =============================================================================
@@ -383,12 +374,6 @@ for les_data in report_data:
     driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
     mymes('Report for' + les_data['group'], 2)
 
-
-print('This day you have next lessons:')  # TODO REMOVE after testing
-for les_data in report_data:
-    print(les_data)
-
-
 with open('report.txt', 'w') as f:
     f.write('This day you have next lessons\n\n')
     f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
@@ -396,7 +381,6 @@ with open('report.txt', 'w') as f:
         f.write(str(les_data['pair']) + '\t' + les_data['time'].strftime("%H:%M") + '\t' + les_data['type'] + ' ' +
                 les_data['group'] + '\t' + str(les_data['attendance']) + '\t' + les_data['video'] + ' ' +
                 les_data['news_link'] + '\n\n')
-
 
 print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + 'report.txt')
 # input('press enter...')
