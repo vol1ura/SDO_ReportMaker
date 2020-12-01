@@ -118,6 +118,11 @@ URL-токен копируется из личного кабинета [cloud.
 1. geckodriver доступен здесь [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
 2. chromedriver доступен здесь [https://github.com/mozilla/geckodriver/releases](https://sites.google.com/a/chromium.org/chromedriver/home)
 
+### Примеры работы программы
+![Uploading video](/pics/screenshot0.png)
+
+![Collecting data](/pics/screenshot6.png)
+
 ### Что добавлено?
 
 ###### Версия 3.0:

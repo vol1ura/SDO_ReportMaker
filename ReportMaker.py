@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# ==================== Version 2.0 =================================
+# ==================== Version 3.0 =================================
 # ReportMaker - make teacher's report on SDO.RSSU.NET.
 # Copyright (c) 2020 Yuriy Volodin, volodinjuv@rgsu.net
 #
