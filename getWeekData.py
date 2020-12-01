@@ -135,7 +135,7 @@ wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))
 mymes('Page parsing', 0, False)
 courses = driver.find_elements_by_class_name("lesson_table")
 # finding links to forum for course
-print('Progress: [' + ' ' * len(timetable) + '] 0%', end='')
+print('Progress: |' + Back.WHITE + ' ' * len(timetable) + Back.RESET + '| ' + '0%'.rjust(4), end='')
 progress = 0
 for lesson in list(timetable):
     for course in courses:
@@ -146,7 +146,7 @@ for lesson in list(timetable):
             link = course.find_element_by_id("lesson_title").find_element_by_tag_name('a').get_attribute('href')
             course_id = re.search(r'\d+$', link)[0]
             lesson['forum'] = 'https://sdo.rgsu.net/forum/subject/subject/' + course_id
-            lesson['news'] = 'https://sdo.rgsu.net/news/index/index/subject_id/' +course_id + '/subject/subject'
+            lesson['news'] = 'https://sdo.rgsu.net/news/index/index/subject_id/' + course_id + '/subject/subject'
             # finding link to journal of our lesson_type
             for items in course.find_elements_by_class_name("hm-subject-list-item-description-lesson-title"):
                 link_elem = items.find_element_by_tag_name('a')
@@ -154,8 +154,8 @@ for lesson in list(timetable):
                     # save link to journal of attendance:
                     lesson['journal'] = link_elem.get_attribute('href') + '/day/all'
                     break
-            print('\rProgress: [' + Back.BLUE + '#' * progress + ' ' * (len(timetable) - progress) +
-                  Back.RESET + '] ' + str(int(progress / len(timetable) * 100 + 0.5)) + '%', end='')
+            print('\rProgress: |' + Back.BLUE + '#' * progress + Back.WHITE + ' ' * (len(timetable) - progress) +
+                  Back.RESET + '| ' + (str(int(progress / len(timetable) * 100 + 0.5)) + '%').rjust(4), end='')
             progress += 1
             break  # go to next group
     else:  # in case of error of sdo - group is missing in list My courses - remove this group from the list

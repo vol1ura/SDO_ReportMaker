@@ -178,8 +178,8 @@ if len(local_paths) > 0:
         element = driver.find_element_by_id('uploadprogressbar')
         k = int(float(element.get_attribute('aria-valuenow')) * 40 / 100 + 0.5)
         attr = element.get_attribute('data-original-title')
-        inf = re.sub(r'(\d+)(,\d)?(?: [KMG]B из )(\d+)(,\d)?', r'\1/\3', attr)
-        print('\rProgress: |' + Back.BLUE + '*' * k + Back.RESET + ' ' * (40 - k) + '| ' + inf.rjust(26), end='')
+        inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
+        print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + '| ' + inf.rjust(26), end='')
         sleep(0.8)
     print('')
     free_space()
@@ -323,11 +323,11 @@ for les_data in report_data:  # TODO REMOVE after testing
 # =============================================================================
 prev_group = ''
 prev_link = ''
-for les_data in report_data:  # TODO check bug with many news records after using list()
+for les_data in report_data:
     if les_data['group'] == prev_group:
         les_data['news_link'] = prev_link
         continue
-    if 'news_link' not in les_data:  # если ещё не сделали новости и не записали ссылку на новость, то:
+    if 'news_link' not in les_data:  # if news link is not generated yet:
         driver.get(les_data['news'])
         mymes('Loading news page', 2)
         driver.find_element_by_partial_link_text('Создать новость').click()
@@ -351,7 +351,7 @@ for les_data in report_data:  # TODO check bug with many news records after usin
         driver.find_element_by_id('insert').click()
         driver.switch_to.default_content()
         driver.find_element_by_id('submit').click()
-        mymes('Saving news', 1)  # This timeout is no needed and can be commented or deleted!
+        # mymes('Saving news', 1)  # This timeout is no needed and can be commented or deleted!
         get_link = wait.until(
             ec.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
         les_data['news_link'] = get_link.get_attribute('href')
