@@ -15,13 +15,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-import re
-from datetime import timedelta
-
 from colorama import Back
-
+from datetime import timedelta
 from infoout import *
 import os
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -58,7 +56,7 @@ for les_data in list(report_data):
     if les_data['time'].day != date.day:
         report_data.remove(les_data)
 
-report_data.sort(key=lambda les: les['group'])
+report_data.sort(key=lambda les: les['group'])  # sorting by group to minimize page reloads
 
 
 def scroll_page(web_element, t=2.0):
@@ -66,53 +64,19 @@ def scroll_page(web_element, t=2.0):
     sleep(t)
 
 
-# def free_space():
-#     fs = float(client.free())
-#     for i in range(3):
-#         fs /= 1024
-#     color = Fore.RED if fs < 10 else Fore.GREEN
-#     print('Free space in your cloud [cloud.rgsu.net]:' + color + '{0:.1f}'.format(fs) + Fore.WHITE + ' Gb')
-#
-#
-# def check_path(p_dir: str):
-#     if not client.check(p_dir):
-#         client.mkdir(p_dir)
-#         print('Directory [{}] created.'.format(p_dir))
+def free_space():
+    fs = float(client.free())
+    for i in range(3):
+        fs /= 1024
+    color = Fore.RED if fs < 10 else Fore.GREEN
+    print('Free space in your cloud [cloud.rgsu.net]: ' + color + '{0:.1f}'.format(fs) + Fore.RESET + ' GB')
 
 
-# =============================================================================
-# Unloading video files on cloud.sdo.net
-# =============================================================================
-# opts = {  # TODO сделать отдельный модуль загрузки и получения ссылкок - через селениум!!!
-#     'webdav_hostname': token,
-#     'webdav_login': login,
-#     'webdav_password': password,
-# }
-# client = Client(opts)  # using webdav protocol for files uploading
-#
-# mymes('WebDAV protocol initialized', 0)
-#
-# rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
-#
-# rem_path = ''
-# for folder in rem_folders:
-#     rem_path += folder + '/'
-#     check_path(rem_path)
-#
-# free_space()
-#
-# files = os.listdir(video_path)
-# mymes('Uploading videos. Please wait!', 0, False)
-# for file in files:
-#     if re.fullmatch(r'Video\d\.\w{2,5}', file):
-#         if not client.check(rem_path + '/' + file):
-#             client.upload_sync(remote_path=rem_path + '/' + file, local_path=os.path.join(video_path, file))
-#             mymes('File [' + file + '] is unloaded', 0)
-#         else:
-#             print('File [' + file + '] has already been uploaded and will be skipped.')
-#
-# mymes('Uploading of all files on rgsu.cloud.net is complete', 0)
-# free_space()
+def check_path(p_dir: str):
+    if not client.check(p_dir):
+        client.mkdir(p_dir)
+        print('Directory [' + Fore.CYAN + p_dir + Fore.RESET + '] created.')
+
 
 # =============================================================================
 # Browser driver initialization
@@ -123,7 +87,7 @@ elif browser[0] == 'C' or browser[0] == 'G':
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
-# opts.add_argument("--headless")
+# opts.add_argument("--headless")  # TODO uncomment after testing
 opts.add_argument('--ignore-certificate-errors')
 mymes('Driver is starting now', 0, False)
 mymes("Please wait, don't close windows!", 0, False)
@@ -144,6 +108,101 @@ wait = WebDriverWait(driver, 20)
 mymes('Headless Mode is initialized', 0)
 
 # =============================================================================
+# Unloading video files on cloud.sdo.net
+# =============================================================================
+opts = {
+    'webdav_hostname': token,
+    'webdav_login': login,
+    'webdav_password': password,
+}
+client = Client(opts)  # using webdav protocol for fast getting information and creating paths
+
+mymes('WebDAV protocol is initialized', 0)
+
+rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
+
+rem_path = ''
+for folder in rem_folders:
+    rem_path += folder + '/'
+    check_path(rem_path)
+
+free_space()
+
+files = os.listdir(video_path)
+local_paths = ""
+video_count = 0
+for file in files:
+    if re.fullmatch(r'Video\d\.\w{2,5}', file):
+        video_count += 1
+        if not client.check(rem_path + '/' + file):
+            local_paths += video_path + file + "\n"
+            print('File [' + Fore.CYAN + file + Fore.RESET + '] will be uploaded.')
+        else:
+            print('File [' + Fore.CYAN + file + Fore.RESET + '] has already been uploaded and will be skipped.')
+
+pair_count = 0
+for les_data in report_data:
+    if les_data['pair'] > pair_count:
+        pair_count = les_data['pair']
+
+if pair_count != video_count:
+    sys.exit(Fore.RED + 'Error! Number of video files (' + str(video_count) +
+             ') and number of lessons in this day (' + str(pair_count) + ') is not match.')
+
+# =============================================================================
+# Generating links for files on cloud.sdo.net through web interface
+# =============================================================================
+
+mymes('Open [cloud.rgsu.net] for uploading and sharing files.', 0, False)
+driver.get('https://cloud.rgsu.net/')
+mymes('Page is loading', 1)
+driver.find_element_by_id('user').send_keys(login)
+driver.find_element_by_id('password').send_keys(password)
+driver.find_element_by_id('submit-form').click()
+mymes('Authorization', 3)
+
+driver.maximize_window()
+
+wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="controls"]')))
+driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
+
+if len(local_paths) > 0:
+    mymes('Open web folder to start upload', 3, False)
+    wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="controls"]')))
+
+    element = driver.find_element_by_xpath('//input[@type="file"]')
+    element.send_keys(local_paths.strip())
+
+    mymes('Task for upload was created', 2)
+    while "none" not in driver.find_element_by_id('uploadprogressbar').get_attribute('style'):
+        element = driver.find_element_by_id('uploadprogressbar')
+        k = int(float(element.get_attribute('aria-valuenow')) * 40 / 100 + 0.5)
+        attr = element.get_attribute('data-original-title')
+        inf = re.sub(r'(\d+)(,\d)?(?: [KMG]B из )(\d+)(,\d)?', r'\1/\3', attr)
+        print('\rProgress: |' + Back.BLUE + '*' * k + Back.RESET + ' ' * (40 - k) + '| ' + inf.rjust(26), end='')
+        sleep(0.8)
+    print('')
+    free_space()
+    driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
+    mymes('Reload web folder and start sharing files', 3, False)
+
+fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
+video_links = []
+share_buttons = fileList.find_elements_by_xpath('//td[2]/a/span[2]/a[1]/span[1]')
+
+for b in share_buttons:
+    b.click()
+    mymes('Sharing file', 2)
+    wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
+    # One click somewhere to close menu:
+    driver.find_element_by_xpath('//*[@id="filestable"]/tfoot/tr/td[2]/span/span[3]').click()
+    link_button = wait.until(ec.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
+    video_links.append(link_button.get_attribute('href').strip())  # add link
+
+for les_data in report_data:
+    les_data['video'] = video_links[les_data['pair'] - 1]
+
+# =============================================================================
 # Login on sdo.rgsu.net
 # =============================================================================
 driver.get('https://sdo.rgsu.net/')
@@ -159,8 +218,6 @@ get_link.click()
 # Tutor mode ON:
 get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
 get_link.click()
-
-driver.maximize_window()
 
 # =============================================================================
 # Let's go to forum and gather students' posts
@@ -262,37 +319,14 @@ for les_data in report_data:  # TODO REMOVE after testing
     print(les_data)
 
 # =============================================================================
-# Generating links for files on cloud.sdo.net through web interface
-# =============================================================================
-
-mymes('Now links will be generated through web interface.', 0, False)
-driver.get('https://cloud.rgsu.net/')
-mymes('Entering login and password', 1)
-driver.find_element_by_id('user').send_keys(login)
-driver.find_element_by_id('password').send_keys(password)
-driver.find_element_by_id('submit-form').click()
-mymes('Authorization', 2)
-
-driver.get('https://cloud.rgsu.net/apps/files/?dir=/') #+ '/'.join(rem_folders))  # FIXME
-fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
-video_links = []
-share_buttons = fileList.find_elements_by_xpath('//td[2]/a/span[2]/a[1]/span[1]')
-for b in share_buttons:
-    b.click()
-    mymes('Sharing file', 2)
-    wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
-    # One click somewhere to close menu:
-    driver.find_element_by_xpath('//*[@id="filestable"]/tfoot/tr/td[2]/span/span[3]').click()
-    link_button = wait.until(ec.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
-    video_links.append(link_button.get_attribute('href').strip())  # add link
-
-for les_data in report_data:
-    les_data['video'] = video_links[les_data['pair'] - 1]
-
-# =============================================================================
 # Making news
 # =============================================================================
-for les_data in list(report_data):  # TODO check bug with many news records after using list()
+prev_group = ''
+prev_link = ''
+for les_data in report_data:  # TODO check bug with many news records after using list()
+    if les_data['group'] == prev_group:
+        les_data['news_link'] = prev_link
+        continue
     if 'news_link' not in les_data:  # если ещё не сделали новости и не записали ссылку на новость, то:
         driver.get(les_data['news'])
         mymes('Loading news page', 2)
@@ -304,8 +338,8 @@ for les_data in list(report_data):  # TODO check bug with many news records afte
         for les_data1 in report_data:
             if les_data['group'] == les_data1['group']:
                 news_text += '<li><a href="' + les_data1['video'] + '">Запись трасляции занятия</a>&nbsp;(' \
-                             + les_data1['type'] + ',&nbsp;' + les_data1['date'].strftime("%H:%M") + ' - ' \
-                             + (les_data1['date'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + ')'
+                             + les_data1['type'] + ',&nbsp;' + les_data1['time'].strftime("%H:%M") + ' - ' \
+                             + (les_data1['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + ')'
         news_text += '</ul>'
         get_link = wait.until(ec.presence_of_element_located((By.ID, 'announce')))
         get_link.send_keys(announce)
@@ -321,10 +355,8 @@ for les_data in list(report_data):  # TODO check bug with many news records afte
         get_link = wait.until(
             ec.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
         les_data['news_link'] = get_link.get_attribute('href')
-        if les_data['group_n'] > 1:  # FIXME something wrong in this place. News generated for each list item
-            for les_data1 in report_data:
-                if (les_data['group'] == les_data1['group']) and ('news_link' not in les_data):
-                    les_data1['news_link'] = les_data['news_link']
+        prev_group = les_data['group']
+        prev_link = les_data['news_link']
 
 
 for les_data in report_data:  # TODO REMOVE after testing
@@ -334,22 +366,22 @@ for les_data in report_data:  # TODO REMOVE after testing
 # =============================================================================
 # Open timetable page to write report        
 # =============================================================================
-get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[1]/div/ul/li[7]/a')))
-get_link.click()  # TODO сделать переход по прямой ссылке https://sdo.rgsu.net/timetable/teacher
+driver.get('https://sdo.rgsu.net/timetable/teacher')
+mymes('Report making', 2, False)
 for les_data in report_data:
-    pairs = driver.find_elements_by_class_name("tt-row")
+    pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, 'tt-row')))
     report_button = pairs[les_data['row']].find_element_by_tag_name('button')
-    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', report_button)  # REFACTOR
-    mymes('Adding report', 2)
+    scroll_page(report_button, 1.5)
     report_button.click()
     if 'attendance' not in les_data:
-        print(Back.RED + 'Attention! ' + 'Attendance for ' + les_data['group'] + ' has not been calculated!')
+        print(Fore.RED + 'Attention! Attendance for ' + les_data['group'] + ' has not been calculated!')
         print(Fore.RED + 'Verify that journals are filled out correctly and make corrections manually.')
         les_data['attendance'] = 0
     driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data['attendance']))
     driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
     driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
     driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
+    mymes('Report for' + les_data['group'], 2)
 
 
 print('This day you have next lessons:')  # TODO REMOVE after testing
@@ -361,12 +393,12 @@ with open('report.txt', 'w') as f:
     f.write('This day you have next lessons\n\n')
     f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
     for les_data in report_data:
-        f.write(les_data['pair'] + '\t' + les_data['time'].strftime("%H:%M") + '\t' + les_data['type'] + ' ' +
+        f.write(str(les_data['pair']) + '\t' + les_data['time'].strftime("%H:%M") + '\t' + les_data['type'] + ' ' +
                 les_data['group'] + '\t' + str(les_data['attendance']) + '\t' + les_data['video'] + ' ' +
                 les_data['news_link'] + '\n\n')
 
 
-print(Fore.GREEN + 'All work is done! See program report in' + Fore.CYAN + 'report.txt')
+print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + 'report.txt')
 # input('press enter...')
 driver.quit()
 print("Driver Turned Off")

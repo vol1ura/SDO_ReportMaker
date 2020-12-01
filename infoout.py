@@ -34,7 +34,7 @@ def getsettings(f_name: str):
     :return: list
     """
     try:
-        with open(f_name) as f:
+        with open(f_name, encoding='utf8') as f:
             s = f.readlines()
     except(IOError, OSError) as e:
         print(e)
@@ -53,7 +53,7 @@ def readfiledata(file_date: datetime):
     :return: list
     """
     table = []
-    fieldnames = ['row', 's_time', 'pair_n', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal']
+    fieldnames = ['s_row', 's_time', 's_pair', 'group', 's_group_n', 'type', 'discipline', 'forum', 'journal', 'news']
     f_name = 'sdoweek_' + file_date.strftime("%d_%m_%y") + '.csv'
     try:
         with open(f_name, 'r', newline='', encoding='utf8') as f:
@@ -65,8 +65,14 @@ def readfiledata(file_date: datetime):
         print()
         sys.exit(Fore.RED + 'Error when reading ' + f_name + '! Check also file encoding.')
     for row in table:
+        row['row'] = int(row['s_row'])
+        row['group_n'] = int(row['s_group_n'])
         row['time'] = datetime.strptime(row['s_time'], '%Y-%m-%d %H:%M:%S')
+        row['pair'] = int(row['s_pair'])
+        del row['s_row']
+        del row['s_group_n']
         del row['s_time']
+        del row['s_pair']
     print('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported' +
           '.' * (80 - len(f_name) - 21) + Fore.GREEN + '[+]')
     return table
