@@ -19,6 +19,7 @@ import csv
 from colorama import Fore, Back
 from datetime import datetime, timedelta
 from infoout import mymes, getsettings
+from concurrent.futures import ThreadPoolExecutor
 import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -135,37 +136,46 @@ wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))
 mymes('Page parsing', 0, False)
 courses = driver.find_elements_by_class_name("lesson_table")
 # finding links to forum for course
-print('Progress: |' + Back.WHITE + ' ' * len(timetable) + Back.RESET + '| ' + '0%'.rjust(4), end='')
-progress = 0
-for lesson in list(timetable):
+
+
+def parse_courses(les):
+    global progress, courses
     for course in courses:
         course_text = course.find_element_by_class_name("lesson_options").text
         # checking that left table pane contains our group:
-        if (lesson['group'] in course_text) and (lesson['discipline'] in course_text):
+        if (les['group'] in course_text) and (les['discipline'] in course_text):
             # finding link to page of this course
             link = course.find_element_by_id("lesson_title").find_element_by_tag_name('a').get_attribute('href')
             course_id = re.search(r'\d+$', link)[0]
-            lesson['forum'] = 'https://sdo.rgsu.net/forum/subject/subject/' + course_id
-            lesson['news'] = 'https://sdo.rgsu.net/news/index/index/subject_id/' + course_id + '/subject/subject'
+            les['forum'] = 'https://sdo.rgsu.net/forum/subject/subject/' + course_id
+            les['news'] = 'https://sdo.rgsu.net/news/index/index/subject_id/' + course_id + '/subject/subject'
             # finding link to journal of our lesson_type
             for items in course.find_elements_by_class_name("hm-subject-list-item-description-lesson-title"):
                 link_elem = items.find_element_by_tag_name('a')
-                if lesson['type'][:6] in link_elem.text:  # if lesson types matches
+                if les['type'][:6] in link_elem.text:  # if lesson types matches
                     # save link to journal of attendance:
-                    lesson['journal'] = link_elem.get_attribute('href') + '/day/all'
+                    les['journal'] = link_elem.get_attribute('href') + '/day/all'
                     break
-            print('\rProgress: |' + Back.BLUE + '#' * progress + Back.WHITE + ' ' * (len(timetable) - progress) +
-                  Back.RESET + '| ' + (str(int(progress / len(timetable) * 100 + 0.5)) + '%').rjust(4), end='')
             progress += 1
+            s = int(50 * progress / len(timetable) + 0.5)
+            print('\rProgress: |' + Back.BLUE + '#' * s + Back.WHITE + ' ' * (50 - s) +
+                  Back.RESET + '| ' + (str(2 * s) + '%').rjust(4), end='')
             break  # go to next group
     else:  # in case of error of sdo - group is missing in list My courses - remove this group from the list
-        print(Fore.RED + '\rWarning! Group ' + lesson['group'] + ' is missing in your list "My courses".')
+        print(Fore.RED + '\rWarning! Group ' + les['group'] + ' is missing in your list "My courses".')
         print('You need to address to technical support. Now this group will be removed from data file.')
-        timetable.remove(lesson)
-print('\rProgress: |' + Back.BLUE + '#' * len(timetable) + Back.RESET + '| ' + Fore.GREEN + '100%')
+        timetable.remove(les)
+
+
+print('Progress: |' + Back.WHITE + ' ' * 50 + Back.RESET + '| ' + '0%'.rjust(4), end='')
+progress = 0
+with ThreadPoolExecutor(8) as executor:
+    executor.map(parse_courses, list(timetable))
+# for lesson in list(timetable):
+#     parse_courses(lesson)
+print('\rProgress: |' + Back.BLUE + '#' * 50 + Back.RESET + '| ' + Fore.GREEN + '100%')
 
 # Counting number of lessons with group in one day
-
 for i in range(len(timetable)):
     if 'group_n' not in timetable[i]:
         group_n = 1
