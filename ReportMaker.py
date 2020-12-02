@@ -51,7 +51,7 @@ while date_wd.isoweekday() != 1:
 if date < date_wd or date - date_wd > timedelta(6):
     sys.exit(Fore.RED + 'Error! Cannot make a report for this date. Check date in settings.txt')
 
-report_data = readfiledata(date_wd)
+report_data = read_data(date_wd)
 for les_data in list(report_data):
     if les_data['time'].day != date.day:
         report_data.remove(les_data)

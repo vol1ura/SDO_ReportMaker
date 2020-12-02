@@ -1,6 +1,6 @@
 from colorama import init, Fore
-import csv
 from datetime import datetime
+import pickle
 import sys
 from time import sleep
 
@@ -43,7 +43,7 @@ def getsettings(f_name: str):
     return s
 
 
-def readfiledata(file_date: datetime):
+def read_data(file_date: datetime):
     """
     Function returns collected data from teacher's timetable and list of courses on sdo.rgsu.net
     It is used for transfer data from one module to another.
@@ -52,27 +52,14 @@ def readfiledata(file_date: datetime):
     :param file_date: datetime
     :return: list
     """
-    table = []
-    fieldnames = ['s_row', 's_time', 's_pair', 'group', 's_group_n', 'type', 'discipline', 'forum', 'journal', 'news']
-    f_name = 'sdoweek_' + file_date.strftime("%d_%m_%y") + '.csv'
+    f_name = 'sdoweek_' + file_date.strftime("%d_%m_%y") + '.dat'
     try:
-        with open(f_name, 'r', newline='', encoding='utf8') as f:
-            reader = csv.DictReader(f, fieldnames=fieldnames)
-            for row in reader:
-                table.append(row)
-    except(IOError, OSError) as e:
+        with open(f_name, 'rb') as f:
+            data = pickle.load(f)
+    except Exception as e:
         print(e)
         print()
-        sys.exit(Fore.RED + 'Error when reading ' + f_name + '! Check also file encoding.')
-    for row in table:
-        row['row'] = int(row['s_row'])
-        row['group_n'] = int(row['s_group_n'])
-        row['time'] = datetime.strptime(row['s_time'], '%Y-%m-%d %H:%M:%S')
-        row['pair'] = int(row['s_pair'])
-        del row['s_row']
-        del row['s_group_n']
-        del row['s_time']
-        del row['s_pair']
+        sys.exit(Fore.RED + 'Error when reading ' + f_name + '! You should create it first by getWeekData script.')
     print('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported' +
           '.' * (80 - len(f_name) - 21) + Fore.GREEN + '[+]')
-    return table
+    return data

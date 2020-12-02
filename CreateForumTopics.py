@@ -40,7 +40,7 @@ while begin_date.isoweekday() != 1:
 print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
 week_dates = [begin_date + timedelta(i) for i in range(6)]
 
-timetable = readfiledata(begin_date)
+timetable = read_data(begin_date)
 
 # =============================================================================
 # Browser driver initialization

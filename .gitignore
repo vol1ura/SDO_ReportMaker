@@ -1,3 +1,4 @@
+*.dat
 *settings.txt*
 *.txt
 *.csv
@@ -277,3 +278,4 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+/sdoweek_30_11_20.dat

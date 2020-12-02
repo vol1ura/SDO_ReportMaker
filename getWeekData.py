@@ -15,7 +15,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-import csv
+import pickle
 from colorama import Fore, Back
 from datetime import datetime, timedelta
 from infoout import mymes, getsettings
@@ -171,8 +171,6 @@ print('Progress: |' + Back.WHITE + ' ' * 50 + Back.RESET + '| ' + '0%'.rjust(4),
 progress = 0
 with ThreadPoolExecutor(8) as executor:
     executor.map(parse_courses, list(timetable))
-# for lesson in list(timetable):
-#     parse_courses(lesson)
 print('\rProgress: |' + Back.BLUE + '#' * 50 + Back.RESET + '| ' + Fore.GREEN + '100%')
 
 # Counting number of lessons with group in one day
@@ -190,11 +188,9 @@ for i in range(len(timetable)):
                 timetable[j]['group_n'] = group_n  # then write the counter to every group record
             j += 1
 
-fieldnames = ['row', 'time', 'pair', 'group', 'group_n', 'type', 'discipline', 'forum', 'journal', 'news']
-f_name = 'sdoweek_' + begin_date.strftime("%d_%m_%y") + '.csv'
-with open(f_name, 'w', newline='', encoding='utf8') as f:
-    writer = csv.DictWriter(f, fieldnames=fieldnames)
-    writer.writerows(timetable)
+f_name = 'sdoweek_' + begin_date.strftime("%d_%m_%y") + '.dat'
+with open(f_name, 'wb') as f:
+    pickle.dump(timetable, f)
 
 print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + f_name + Fore.GREEN + ' file.')
 # input('press enter...')
