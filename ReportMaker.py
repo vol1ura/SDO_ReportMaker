@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# ==================== Version 3.0 =================================
+# ==================== Version 3.1 =================================
 # ReportMaker - make teacher's report on SDO.RSSU.NET.
 # Copyright (c) 2020 Yuriy Volodin, volodinjuv@rgsu.net
 #
@@ -60,7 +60,7 @@ report_data.sort(key=lambda les: les['group'])  # sorting by group to minimize p
 
 
 def scroll_page(web_element, t=2.0):
-    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', web_element)
+    driver.execute_script('arguments[0].scrollIntoView({block: "center", inline: "center"})', web_element)
     sleep(t)
 
 
@@ -372,7 +372,7 @@ for les_data in report_data:
     driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
     driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
     driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
-    mymes('Report for' + les_data['group'], 2)
+    mymes('Report for ' + les_data['group'], 2)
 
 with open('report.txt', 'w') as f:
     f.write('This day you have next lessons\n\n')

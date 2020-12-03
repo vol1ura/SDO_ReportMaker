@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# ========================== Version 3.0 ==============================================
+# ========================== Version 3.1 ==============================================
 # getWeekData  - Generate csv file with timetable data
 # Copyright (c) 2020 Yuriy Volodin volodinjuv@rgsu.net
 #
@@ -17,9 +17,9 @@
 #
 import pickle
 from colorama import Fore, Back
+from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from infoout import mymes, getsettings
-from concurrent.futures import ThreadPoolExecutor
 import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -51,7 +51,7 @@ week_dates = [begin_date + timedelta(i) for i in range(6)]
 # =============================================================================
 if browser[0] == 'F':
     from selenium.webdriver.firefox.options import Options  # for Firefox browser
-elif browser[0] == 'C' or browser[0] == 'G':
+elif (browser[0] == 'C') or (browser[0] == 'G'):
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
@@ -63,14 +63,14 @@ mymes("Please wait, don't close windows!", 0, False)
 if browser[0] == 'F':
     # Download driver on https://github.com/mozilla/geckodriver/releases
     driver = webdriver.Firefox(options=opts, executable_path=browser_driver_path)
-elif browser[0] == 'C' or browser[0] == 'G':
+elif (browser[0] == 'C') or (browser[0] == 'G'):
     # Download Chrome driver if you use Google Chrome
     # https://sites.google.com/a/chromium.org/chromedriver/home
     driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
 else:
     sys.exit('Error! Unknown name of browser. Please check requirements ans file settings.txt')
 
-# driver = webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
+# driver = webdriver.Safari(executable_path=r'/usr/bin/safaridriver') # for MacOS
 
 wait = WebDriverWait(driver, 20)
 mymes('Headless Mode is initialized', 0)
@@ -102,7 +102,7 @@ driver.get(timetable_link)
 mymes('Timetable is opening', 1)
 pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
 timetable = []  # array of data
-for pair in pairs:
+for row, pair in enumerate(pairs):
     # Read lines, parse discipline, time, date and type
     pair_cells = pair.find_elements_by_tag_name('td')
     cell3 = pair_cells[2].text  # discipline and dates in a single cell
@@ -119,11 +119,8 @@ for pair in pairs:
         else:
             pair_n = timetable[-1]['pair'] + 1
     # Append collected data to the end of list report_data:
-    timetable.append({'time': cell_date, 'pair': pair_n, 'group': pair_cells[3].text.strip(),
+    timetable.append({'row': row, 'time': cell_date, 'pair': pair_n, 'group': pair_cells[3].text.strip(),
                       'type': pair_cells[4].text.strip(), 'discipline': discipline})
-
-for i in range(len(timetable)):
-    timetable[i]['row'] = i  # tt-row of timetable in field 'row'
 
 # =============================================================================
 # Go to "My Courses" page - it downloads very long !!!

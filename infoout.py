@@ -58,7 +58,6 @@ def read_data(file_date: datetime):
             data = pickle.load(f)
     except Exception as e:
         print(e)
-        print()
         sys.exit(Fore.RED + 'Error when reading ' + f_name + '! You should create it first by getWeekData script.')
     print('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported' +
           '.' * (80 - len(f_name) - 21) + Fore.GREEN + '[+]')
