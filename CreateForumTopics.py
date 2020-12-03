@@ -47,7 +47,7 @@ timetable = read_data(begin_date)
 # =============================================================================
 if browser[0] == 'F':
     from selenium.webdriver.firefox.options import Options  # for Firefox browser
-elif browser[0] == 'C' or browser[0] == 'G':
+elif (browser[0] == 'C') or (browser[0] == 'G'):
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
@@ -59,7 +59,7 @@ mymes("Please wait, don't close windows!", 0, False)
 if browser[0] == 'F':
     # Download driver on https://github.com/mozilla/geckodriver/releases
     driver = webdriver.Firefox(options=opts, executable_path=browser_driver_path)
-elif browser[0] == 'C' or browser[0] == 'G':
+elif (browser[0] == 'C') or (browser[0] == 'G'):
     # Download Chrome driver if you use Google Chrome
     # https://sites.google.com/a/chromium.org/chromedriver/home
     driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
@@ -110,7 +110,7 @@ for lesson in timetable[::-1]:  # reverse order for chronological order
     driver.find_element_by_xpath('//a[@title="Редактировать HTML код"]').click()
     frame_id = driver.find_element_by_xpath('//iframe[starts-with(@id, "mce_")]').get_attribute('id')
     driver.switch_to.frame(frame_id)
-    topic_text = '<p><span style="font-size: large;">Уважаемые студенты, данная тема предназначена только ' + \
+    topic_text = '<p><span style="font-size: x-large;">Группа ' + lesson['group'] + ', это тема только ' + \
                  'для отметки посещения пары с ' + lesson['time'].strftime("%H:%M") + ' по ' + \
                  (lesson['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + '!</span></p>' + \
                  '<p>Отметка производится <strong>строго</strong> во время занятия ' + \

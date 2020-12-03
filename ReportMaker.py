@@ -83,7 +83,7 @@ def check_path(p_dir: str):
 # =============================================================================
 if browser[0] == 'F':
     from selenium.webdriver.firefox.options import Options  # for Firefox browser
-elif browser[0] == 'C' or browser[0] == 'G':
+elif (browser[0] == 'C') or (browser[0] == 'G'):
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
@@ -95,7 +95,7 @@ mymes("Please wait, don't close windows!", 0, False)
 if browser[0] == 'F':
     # Download driver on https://github.com/mozilla/geckodriver/releases
     driver = webdriver.Firefox(options=opts, executable_path=browser_driver_path)
-elif browser[0] == 'C' or browser[0] == 'G':
+elif (browser[0] == 'C') or (browser[0] == 'G'):
     # Download Chrome driver if you use Google Chrome
     # https://sites.google.com/a/chromium.org/chromedriver/home
     driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
@@ -183,8 +183,8 @@ if len(local_paths) > 0:
         sleep(0.8)
     print('')
     free_space()
-    driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))  # maybe it is no need
-    mymes('Reload web folder and start sharing files', 3, False)
+    # driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))  # maybe it is no need
+    mymes('Start sharing files', 1, False)
 
 video_links = []
 fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
