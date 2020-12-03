@@ -57,8 +57,7 @@ elif (browser[0] == 'C') or (browser[0] == 'G'):
 opts = Options()
 opts.add_argument("--headless")
 opts.add_argument('--ignore-certificate-errors')
-mymes('Driver is starting now', 0, False)
-mymes("Please wait, don't close windows!", 0, False)
+mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
 
 if browser[0] == 'F':
     # Download driver on https://github.com/mozilla/geckodriver/releases
@@ -142,16 +141,16 @@ def parse_courses(les):
         # checking that left table pane contains our group:
         if (les['group'] in course_text) and (les['discipline'] in course_text):
             # finding link to page of this course
-            link = course.find_element_by_id("lesson_title").find_element_by_tag_name('a').get_attribute('href')
+            link = course.find_element_by_xpath('.//div[@id="lesson_title"]/a').get_attribute('href')
             course_id = re.search(r'\d+$', link)[0]
             les['forum'] = 'https://sdo.rgsu.net/forum/subject/subject/' + course_id
             les['news'] = 'https://sdo.rgsu.net/news/index/index/subject_id/' + course_id + '/subject/subject'
             # finding link to journal of our lesson_type
-            for items in course.find_elements_by_class_name("hm-subject-list-item-description-lesson-title"):
-                link_elem = items.find_element_by_tag_name('a')
-                if les['type'][:6] in link_elem.text:  # if lesson types matches
+            menu = course.find_elements_by_xpath('.//div[@class="hm-subject-list-item-description-lesson-title"]/a')
+            for link in menu:
+                if les['type'][:6] in link.text:  # if lesson types matches
                     # save link to journal of attendance:
-                    les['journal'] = link_elem.get_attribute('href') + '/day/all'
+                    les['journal'] = link.get_attribute('href') + '/day/all'
                     break
             progress += 1
             s = int(50 * progress / len(timetable) + 0.5)
