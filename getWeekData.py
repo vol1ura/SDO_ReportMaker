@@ -159,7 +159,8 @@ def parse_courses(les):
             break  # go to next group
     else:  # in case of error of sdo - group is missing in list My courses - remove this group from the list
         print(Fore.RED + '\rWarning! Group ' + les['group'] + ' is missing in your list "My courses".')
-        print('You need to address to technical support. Now this group will be removed from data file.')
+        print('You need to address to technical support. Restart program after solving this problem.')
+        print('Now this group will be removed from data file and process will continue.')
         timetable.remove(les)
 
 
@@ -188,7 +189,7 @@ f_name = 'sdoweek_' + begin_date.strftime("%d_%m_%y") + '.dat'
 with open(f_name, 'wb') as f:
     pickle.dump(timetable, f)
 
-print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + f_name + Fore.GREEN + ' file.')
+print(Fore.GREEN + 'All work is done! Collected data was written in ' + Fore.CYAN + f_name + Fore.GREEN + ' file.')
 # input('press enter...')
 driver.quit()
 print("Driver Turned Off")
