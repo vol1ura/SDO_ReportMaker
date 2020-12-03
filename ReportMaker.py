@@ -183,13 +183,12 @@ if len(local_paths) > 0:
         sleep(0.8)
     print('')
     free_space()
-    driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
+    driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))  # maybe it is no need
     mymes('Reload web folder and start sharing files', 3, False)
 
-fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
 video_links = []
-share_buttons = fileList.find_elements_by_xpath('//td[2]/a/span[2]/a[1]/span[1]')
-
+fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
+share_buttons = fileList.find_elements_by_xpath('.//a[@data-action="Share"]/span[1]')
 for b in share_buttons:
     b.click()
     mymes('Sharing file', 2)
