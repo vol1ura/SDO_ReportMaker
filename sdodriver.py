@@ -3,11 +3,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 from time import sleep
+from webdav3.client import Client
 
 
 class FFDriver(webdriver.Firefox):
     def __init__(self, driver_path):
         from selenium.webdriver.firefox.options import Options  # for Firefox browser
+        # webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
         opts = Options()
         opts.add_argument('--headless')
         opts.add_argument('--ignore-certificate-errors')
@@ -29,7 +31,6 @@ class Driver(FFDriver, GCDriver):
             FFDriver.__init__(self, driver_path)
         elif browser[0] == 'G' or browser[0] == 'C':
             GCDriver.__init__(self, driver_path)
-        # webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
         self.implicitly_wait(5)  # seconds - use carefully!
         self.wait = WebDriverWait(self, 20)
         self.maximize_window()
@@ -62,3 +63,25 @@ class Driver(FFDriver, GCDriver):
     def turnoff(self):
         self.quit()
         print('Driver Turned Off')
+
+
+class CloudDriver(Client):  # using webdav protocol for fast getting information and creating paths
+    def __init__(self, login, password, token):
+        opts = {
+            'webdav_hostname': token,
+            'webdav_login': login,
+            'webdav_password': password,
+        }
+        Client.__init__(self, opts)
+
+    def free_space(self):
+        fs = float(self.free())
+        for i in range(3):
+            fs /= 1024
+        color = '\033[31m' if fs < 10 else '\033[32m'
+        print(f'Free space in your cloud [cloud.rgsu.net]: {color}{fs:.1f}\033[0m GB')
+
+    def check_path(self, p_dir: str):
+        if not self.check(p_dir):
+            self.mkdir(p_dir)
+            print(f'Directory [\033[36m{p_dir}\033[0m] created.')
