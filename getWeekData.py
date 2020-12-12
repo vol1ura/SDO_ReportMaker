@@ -15,16 +15,15 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-import pickle
 from colorama import Fore, Back
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from infoout import mymes, get_settings
+import pickle
 import re
-from selenium import webdriver
+import sdodriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait
 import sys
 
 login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
@@ -42,60 +41,20 @@ while begin_date.isoweekday() != 1:
 print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
 week_dates = [begin_date + timedelta(i) for i in range(6)]
 
-# =============================================================================
 # Browser driver initialization
-# =============================================================================
-if browser[0] == 'F':
-    from selenium.webdriver.firefox.options import Options  # for Firefox browser
-elif (browser[0] == 'C') or (browser[0] == 'G'):
-    from selenium.webdriver.chrome.options import Options  # for Chrome browser
-
-opts = Options()
-opts.add_argument("--headless")
-opts.add_argument('--ignore-certificate-errors')
 mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
-
-if browser[0] == 'F':
-    # Download driver on https://github.com/mozilla/geckodriver/releases
-    driver = webdriver.Firefox(options=opts, executable_path=browser_driver_path)
-elif (browser[0] == 'C') or (browser[0] == 'G'):
-    # Download Chrome driver if you use Google Chrome
-    # https://sites.google.com/a/chromium.org/chromedriver/home
-    driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
-else:
-    sys.exit('Error! Unknown name of browser. Please check requirements ans file settings.txt')
-
-# driver = webdriver.Safari(executable_path=r'/usr/bin/safaridriver') # for MacOS
-
-wait = WebDriverWait(driver, 20)
-mymes('Headless Mode is initialized', 0)
-
-# =============================================================================
+driver = sdodriver.Driver(browser, browser_driver_path)
 # Login on sdo.rgsu.net
-# =============================================================================
-driver.get('https://sdo.rgsu.net/')
-get_link = wait.until(ec.element_to_be_clickable((By.CLASS_NAME, 'login')))
-get_link.click()
-mymes('Opening login form', 1, False)
-mymes('Entering login and password', 1, False)
-driver.find_element_by_id('login').send_keys(login)
-driver.find_element_by_id('password').send_keys(password)
-# Submit authorization:
-get_link = wait.until(ec.element_to_be_clickable((By.ID, 'submit')))
-get_link.click()
-# Tutor mode ON:
-get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
-get_link.click()
-
-driver.maximize_window()
+mymes('Login on [sdo.rgsu.net]', 0, False)
+driver.open_sdo(login, password)
 
 # =============================================================================
 # Go to timetable for the next week and parse it:
 # =============================================================================
-wait.until(ec.presence_of_element_located((By.XPATH, '//div[@class="wrapper"]')))
+driver.wait.until(ec.presence_of_element_located((By.XPATH, '//div[@class="wrapper"]')))
 driver.get(timetable_link)
 mymes('Timetable is opening', 1)
-pairs = wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
+pairs = driver.wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, "tt-row")))
 timetable = []  # array of data
 for row, pair in enumerate(pairs):
     # Read lines, parse discipline, time, date and type
@@ -123,7 +82,7 @@ for row, pair in enumerate(pairs):
 mymes('Script working. Please, wait', 0, False)
 driver.get(driver.find_element_by_xpath('//div[@class="wrapper"]/ul/li[2]/a').get_attribute('href'))
 mymes('Loading All courses page', 1)  # pause and wait until all elements located:
-wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))
+driver.wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="credits"]')))
 # Find group in All courses table, parse link to course and get link to forum
 mymes('Page parsing', 0, False)
 courses = driver.find_elements_by_class_name("lesson_table")
@@ -187,5 +146,4 @@ with open(f_name, 'wb') as f:
 
 print(Fore.GREEN + 'All work is done! Collected data was written in ' + Fore.CYAN + f_name + Fore.GREEN + ' file.')
 # input('press enter...')
-driver.quit()
-print("Driver Turned Off")
+driver.turnoff()
