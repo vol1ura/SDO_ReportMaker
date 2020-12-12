@@ -1,6 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 from time import sleep
 
@@ -29,22 +29,23 @@ class Driver(FFDriver, GCDriver):
             FFDriver.__init__(self, driver_path)
         elif browser[0] == 'G' or browser[0] == 'C':
             GCDriver.__init__(self, driver_path)
+        # webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
         self.implicitly_wait(5)  # seconds - use carefully!
         self.wait = WebDriverWait(self, 20)
         self.maximize_window()
 
     def open_sdo(self, login, password):
         self.get('https://sdo.rgsu.net/')
-        element = self.wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'login')))
+        element = self.wait.until(ec.element_to_be_clickable((By.CLASS_NAME, 'login')))
         element.click()
         sleep(1)
         self.find_element_by_id('login').send_keys(login)
         self.find_element_by_id('password').send_keys(password)
-        element = self.wait.until(EC.element_to_be_clickable((By.ID, 'submit')))  # submit authorization
+        element = self.wait.until(ec.element_to_be_clickable((By.ID, 'submit')))  # submit authorization
         element.click()
         sleep(1)
         # tutor mode ON:
-        element = self.wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
+        element = self.wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
         element.click()
 
     def open_cloud(self, login, password):

@@ -109,8 +109,8 @@ def parse_courses(les):
                     break
             progress += 1
             s = int(50 * progress / len(timetable) + 0.5)
-            print('\rProgress: |' + Back.BLUE + '#' * s + Back.WHITE + ' ' * (50 - s) +
-                  Back.RESET + '| ' + (str(2 * s) + '%').rjust(4), end='')
+            print('\rProgress: |' + Back.BLUE + '#' * s + Back.WHITE +
+                  ' ' * (50 - s) + Back.RESET + f'| {2 * s:>4}%', end='')
             break  # go to next group
     else:  # in case of error of sdo - group is missing in list My courses - remove this group from the list
         print(Fore.RED + '\rWarning! Group ' + les['group'] + ' is missing in your list "My courses".')

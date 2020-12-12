@@ -18,10 +18,7 @@
 from colorama import Back
 from datetime import timedelta
 from infoout import *
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait
+import sdodriver
 import sys
 
 login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
@@ -40,53 +37,12 @@ timetable = read_data(begin_date)
 # sorting by URL to minimize page reloads and then by pair to chronological order of topics:
 timetable.sort(key=lambda les: (les['forum'], -les['pair']))
 
-# =============================================================================
 # Browser driver initialization
-# =============================================================================
-if browser[0] == 'F':
-    from selenium.webdriver.firefox.options import Options  # for Firefox browser
-elif (browser[0] == 'C') or (browser[0] == 'G'):
-    from selenium.webdriver.chrome.options import Options  # for Chrome browser
-
-opts = Options()
-opts.add_argument('--headless')
-opts.add_argument('--ignore-certificate-errors')
-mymes('Driver is starting now', 0, False)
-mymes("Please wait, don't close windows!", 0, False)
-
-if browser[0] == 'F':
-    # Download driver on https://github.com/mozilla/geckodriver/releases
-    driver = webdriver.Firefox(options=opts, executable_path=browser_driver_path)
-elif (browser[0] == 'C') or (browser[0] == 'G'):
-    # Download Chrome driver if you use Google Chrome
-    # https://sites.google.com/a/chromium.org/chromedriver/home
-    driver = webdriver.Chrome(chrome_options=opts, executable_path=browser_driver_path)
-else:
-    sys.exit(Fore.RED + 'Error! Unknown name of browser. Please check requirements ans file settings.txt')
-
-# driver = webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
-
-wait = WebDriverWait(driver, 20)
-mymes('Headless Mode is initialized', 0)
-
-# =============================================================================
+mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
+driver = sdodriver.Driver(browser, browser_driver_path)
 # Login on sdo.rgsu.net
-# =============================================================================
-driver.get('https://sdo.rgsu.net/')
-get_link = wait.until(ec.element_to_be_clickable((By.CLASS_NAME, 'login')))
-get_link.click()
-mymes('Opening login form', 1, False)
-mymes('Entering login and password', 1, False)
-driver.find_element_by_id('login').send_keys(login)
-driver.find_element_by_id('password').send_keys(password)
-# Submit authorization:
-get_link = wait.until(ec.element_to_be_clickable((By.ID, 'submit')))
-get_link.click()
-# Tutor mode ON:
-get_link = wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
-get_link.click()
-
-driver.maximize_window()
+mymes('Login on [sdo.rgsu.net]', 0, False)
+driver.open_sdo(login, password)
 
 # =============================================================================
 # Create forum topics for all groups in timetable
@@ -99,16 +55,16 @@ for lesson in timetable:
         driver.get(lesson['forum'])
         last_forum = lesson['forum']
     get_element = driver.find_element_by_xpath('//a[text()="Создать тему"]')
-    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', get_element)
-    mymes(f"Generating forum topic for group {lesson['group']} ({lesson['time'].strftime('%H:%M')})", 2, False)
+    driver.scroll_page(get_element, 0)
+    mymes(f'Generating forum topic for group {lesson["group"]} ({lesson["time"].strftime("%H:%M")})', 2, False)
     get_element.click()
     get_element = driver.find_element_by_xpath('//div[@class="topic-input"]/input')
-    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', get_element)
+    driver.scroll_page(get_element, 0.3)
     # Отметка посещения [ГРУППА]: [ДАТА], время занятия [НАЧАЛО]-[КОНЕЦ] ([Лабораторная работа])
-    get_element.send_keys(f"Отметка посещения {lesson['group']}: {lesson['time'].strftime('%d.%m.%Y')}, " +
-                          f"время занятия {lesson['time'].strftime('%H:%M')}-" +
-                          (lesson['time'] + timedelta(hours=1, minutes=30)).strftime('%H:%M') +
-                          f" ({lesson['type']})")
+    get_element.send_keys(f'Отметка посещения {lesson["group"]}: {lesson["time"].strftime("%d.%m.%Y")}, ' +
+                          f'время занятия {lesson["time"].strftime("%H:%M")}-' +
+                          (lesson['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") +
+                          f' ({lesson["type"]})')
     driver.find_element_by_xpath('//a[@title="Редактировать HTML код"]').click()
     frame_id = driver.find_element_by_xpath('//iframe[starts-with(@id, "mce_")]').get_attribute('id')
     driver.switch_to.frame(frame_id)
@@ -129,14 +85,11 @@ for lesson in timetable:
     driver.switch_to.default_content()
     get_element = driver.find_element_by_id('submit')
     # get_element = driver.find_element_by_xpath('//a/span[text()="Отменить"]')  # for DEBUG only!!!
-    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', get_element)
-    mymes('Loading', 0.5, False)
+    driver.scroll_page(get_element, 0.5)
     get_element.click()
     k += 1
-    mymes('Saving topic ' + str(k) + ' of ' + str(len(timetable)) + ' (' +
-          str(int(k / len(timetable) * 100 + 0.5)) + '%)', 1)
+    mymes(f'Saving topic {k} of {len(timetable)} ({k / len(timetable) * 100:.0f}%)', 1)
 
 print(Fore.GREEN + "All work is done!")
 # input('press enter...')
-driver.quit()
-print("Driver Turned Off")
+driver.turnoff()
