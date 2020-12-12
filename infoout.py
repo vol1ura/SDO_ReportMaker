@@ -26,7 +26,7 @@ def mymes(mes: str, d: float, plus_mark=True):
         print('...')
 
 
-def getsettings(f_name: str):
+def get_settings(f_name: str):
     """
     Function for reading settings files and get data as list of strings.
 
@@ -39,7 +39,7 @@ def getsettings(f_name: str):
     except(IOError, OSError) as e:
         print(e)
         print()
-        sys.exit(Fore.RED + 'Error when reading ' + f_name + ' file!')
+        sys.exit(Fore.RED + f'Error when reading {f_name} file!')
     return s
 
 
@@ -58,7 +58,7 @@ def read_data(file_date: datetime):
             data = pickle.load(f)
     except Exception as e:
         print(e)
-        sys.exit(Fore.RED + 'Error when reading ' + f_name + '! You should create it first by getWeekData script.')
+        sys.exit(Fore.RED + f'Error when reading {f_name}! You should create it first by getWeekData script.')
     print('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported' +
           '.' * (80 - len(f_name) - 21) + Fore.GREEN + '[+]')
     return data

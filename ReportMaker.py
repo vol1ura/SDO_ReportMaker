@@ -30,13 +30,7 @@ from time import sleep
 from webdav3.client import Client
 # ============================================================================
 
-settings = getsettings('settings.txt')
-login = settings[0].strip()
-password = settings[1].strip()
-token = settings[2].strip()
-video_path = settings[3].strip()
-browser = settings[4].strip().upper()
-browser_driver_path = settings[5].strip()
+login, password, token, video_path, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
 
 date_wd = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 if len(sys.argv) < 2:
@@ -69,7 +63,7 @@ def free_space():
     for i in range(3):
         fs /= 1024
     color = Fore.RED if fs < 10 else Fore.GREEN
-    print('Free space in your cloud [cloud.rgsu.net]: ' + color + '{0:.1f}'.format(fs) + Fore.RESET + ' GB')
+    print('Free space in your cloud [cloud.rgsu.net]: ' + color + f'{fs:.1f}' + Fore.RESET + ' GB')
 
 
 def check_path(p_dir: str):
@@ -87,10 +81,9 @@ elif (browser[0] == 'C') or (browser[0] == 'G'):
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
-opts.add_argument("--headless")
+opts.add_argument('--headless')
 opts.add_argument('--ignore-certificate-errors')
-mymes('Driver is starting now', 0, False)
-mymes("Please wait, don't close windows!", 0, False)
+mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
 
 if browser[0] == 'F':
     # Download driver on https://github.com/mozilla/geckodriver/releases
@@ -146,8 +139,8 @@ for les_data in report_data:
         pair_count = les_data['pair']
 
 if pair_count != video_count:
-    sys.exit(Fore.RED + 'Error! Number of video files (' + str(video_count) +
-             ') and number of lessons in this day (' + str(pair_count) + ') is not match.')
+    sys.exit(Fore.RED + f'Error! Number of video files ({video_count}) ' +
+             f'and number of lessons in this day ({pair_count}) is not match.')
 
 # =============================================================================
 # Generating links for files on cloud.sdo.net through web interface
@@ -179,7 +172,7 @@ if len(local_paths) > 0:
         k = int(float(element.get_attribute('aria-valuenow')) * 40 / 100 + 0.5)
         attr = element.get_attribute('data-original-title')
         inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
-        print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + '| ' + inf.rjust(26), end='')
+        print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + f'| {inf:>26}', end='')
         sleep(0.8)
     print('')
     free_space()
@@ -191,7 +184,7 @@ fileList = wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]
 share_buttons = fileList.find_elements_by_xpath('.//a[@data-action="Share"]/span[1]')
 for b in share_buttons:
     b.click()
-    mymes('Sharing file', 2)
+    mymes('Sharing file', 2.5)
     wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
     # One click somewhere to close menu:
     driver.find_element_by_xpath('//*[@id="filestable"]/tfoot/tr/td[2]/span/span[3]').click()
@@ -328,8 +321,8 @@ for les_data in report_data:
         driver.find_element_by_partial_link_text('Создать новость').click()
         mymes('Loading news form', 2)
         driver.find_element_by_tag_name("html").send_keys(Keys.PAGE_DOWN)
-        announce = 'Видеоматериалы занятия от ' + date.strftime("%d.%m.%Y") + ' с группой ' + les_data['group']
-        news_text = '<p>Занятие от ' + date.strftime("%d.%m.%Y") + ' г.:</p><ul>'
+        announce = f"Видеоматериалы занятия от {date.strftime('%d.%m.%Y')} с группой {les_data['group']}"
+        news_text = f"<p>Занятие от {date.strftime('%d.%m.%Y')} г.:</p><ul>"
         for les_data1 in report_data:
             if les_data['group'] == les_data1['group']:
                 news_text += '<li><a href="' + les_data1['video'] + '">Запись трасляции занятия</a>&nbsp;(' \
@@ -364,7 +357,7 @@ for les_data in report_data:
     scroll_page(report_button, 1.5)
     report_button.click()
     if 'attendance' not in les_data:
-        print(Fore.RED + 'Attention! Attendance for ' + les_data['group'] + ' has not been calculated!')
+        print(Fore.RED + f"Attention! Attendance for {les_data['group']} has not been calculated!")
         print(Fore.RED + 'Verify that journals are filled out correctly and make corrections manually.')
         les_data['attendance'] = 0
     driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data['attendance']))

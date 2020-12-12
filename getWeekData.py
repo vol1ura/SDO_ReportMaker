@@ -19,7 +19,7 @@ import pickle
 from colorama import Fore, Back
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from infoout import mymes, getsettings
+from infoout import mymes, get_settings
 import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -27,11 +27,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 import sys
 
-settings = getsettings('settings.txt')
-login = settings[0].strip()
-password = settings[1].strip()
-browser = settings[4].strip()
-browser_driver_path = settings[5].strip()
+login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
 
 begin_date = datetime.now()
 if len(sys.argv) > 1 and sys.argv[1] == 'n':  # if parameter n in command line
@@ -185,7 +181,7 @@ for i in range(len(timetable)):
                 timetable[j]['group_n'] = group_n  # then write the counter to every group record
             j += 1
 
-f_name = 'sdoweek_' + begin_date.strftime("%d_%m_%y") + '.dat'
+f_name = f'sdoweek_{begin_date.strftime("%d_%m_%y")}.dat'
 with open(f_name, 'wb') as f:
     pickle.dump(timetable, f)
 

@@ -1,18 +1,12 @@
-from infoout import mymes, getsettings
+from infoout import mymes, get_settings
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.firefox.options import Options
-# from selenium.webdriver.chrome.options import Options
 import sys
 
 # if __name__ == '__name__':
-settings = getsettings()
-login = settings[0].strip()
-password = settings[1].strip()
-browser = settings[4].strip()
-browser_driver_path = settings[5].strip()
+login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
 
 
 def sdodriver():

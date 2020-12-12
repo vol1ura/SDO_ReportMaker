@@ -24,11 +24,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 import sys
 
-settings = getsettings('settings.txt')
-login = settings[0].strip()
-password = settings[1].strip()
-browser = settings[4].strip()
-browser_driver_path = settings[5].strip()
+login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
 
 begin_date = datetime.now()
 if len(sys.argv) > 1 and sys.argv[1] == 'n':  # if parameter n in command line
@@ -41,6 +37,8 @@ print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y
 week_dates = [begin_date + timedelta(i) for i in range(6)]
 
 timetable = read_data(begin_date)
+# sorting by URL to minimize page reloads and then by pair to chronological order of topics:
+timetable.sort(key=lambda les: (les['forum'], -les['pair']))
 
 # =============================================================================
 # Browser driver initialization
@@ -51,7 +49,7 @@ elif (browser[0] == 'C') or (browser[0] == 'G'):
     from selenium.webdriver.chrome.options import Options  # for Chrome browser
 
 opts = Options()
-opts.add_argument("--headless")
+opts.add_argument('--headless')
 opts.add_argument('--ignore-certificate-errors')
 mymes('Driver is starting now', 0, False)
 mymes("Please wait, don't close windows!", 0, False)
@@ -94,24 +92,28 @@ driver.maximize_window()
 # Create forum topics for all groups in timetable
 # =============================================================================
 k = 0
+last_forum = ''
 mymes("Let's make forum topics!", 0, False)
-for lesson in timetable[::-1]:  # reverse order for chronological order
-    driver.get(lesson['forum'])
+for lesson in timetable:
+    if lesson['forum'] != last_forum:
+        driver.get(lesson['forum'])
+        last_forum = lesson['forum']
     get_element = driver.find_element_by_xpath('//a[text()="Создать тему"]')
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', get_element)
-    mymes('Adding forum topic for group ' + lesson['group'] + ' (' + lesson['time'].strftime("%H:%M") + ')', 2, False)
+    mymes(f"Generating forum topic for group {lesson['group']} ({lesson['time'].strftime('%H:%M')})", 2, False)
     get_element.click()
     get_element = driver.find_element_by_xpath('//div[@class="topic-input"]/input')
+    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', get_element)
     # Отметка посещения [ГРУППА]: [ДАТА], время занятия [НАЧАЛО]-[КОНЕЦ] ([Лабораторная работа])
-    get_element.send_keys('Отметка посещения ' + lesson['group'] + ': ' + lesson['time'].strftime("%d.%m.%Y") + ', ' +
-                          'время занятия ' + lesson['time'].strftime("%H:%M") + '-' +
-                          (lesson['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") +
-                          ' (' + lesson['type'] + ')')
+    get_element.send_keys(f"Отметка посещения {lesson['group']}: {lesson['time'].strftime('%d.%m.%Y')}, " +
+                          f"время занятия {lesson['time'].strftime('%H:%M')}-" +
+                          (lesson['time'] + timedelta(hours=1, minutes=30)).strftime('%H:%M') +
+                          f" ({lesson['type']})")
     driver.find_element_by_xpath('//a[@title="Редактировать HTML код"]').click()
     frame_id = driver.find_element_by_xpath('//iframe[starts-with(@id, "mce_")]').get_attribute('id')
     driver.switch_to.frame(frame_id)
-    topic_text = '<p><span style="font-size: x-large;">Группа ' + lesson['group'] + ', это тема только ' + \
-                 'для отметки посещения пары с ' + lesson['time'].strftime("%H:%M") + ' по ' + \
+    topic_text = f'<p><span style="font-size: x-large;">Группа {lesson["group"]}, это тема только ' + \
+                 f'для отметки посещения пары с {lesson["time"].strftime("%H:%M")} по ' + \
                  (lesson['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + '!</span></p>' + \
                  '<p>Отметка производится <strong>строго</strong> во время занятия ' + \
                  '(<strong>автоматически проверяется дата и время создания сообщения</strong>). ' + \
@@ -126,8 +128,9 @@ for lesson in timetable[::-1]:  # reverse order for chronological order
     driver.find_element_by_id('insert').click()
     driver.switch_to.default_content()
     get_element = driver.find_element_by_id('submit')
+    # get_element = driver.find_element_by_xpath('//a/span[text()="Отменить"]')  # for DEBUG only!!!
     driver.execute_script('arguments[0].scrollIntoView({block: "center"})', get_element)
-    mymes('Loading', 1, False)
+    mymes('Loading', 0.5, False)
     get_element.click()
     k += 1
     mymes('Saving topic ' + str(k) + ' of ' + str(len(timetable)) + ' (' +
