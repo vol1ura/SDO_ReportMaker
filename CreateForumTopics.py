@@ -91,5 +91,5 @@ for lesson in timetable:
     mymes(f'Saving topic {k} of {len(timetable)} ({k / len(timetable) * 100:.0f}%)', 1)
 
 print(Fore.GREEN + "All work is done!")
-# input('press enter...')
 driver.turnoff()
+# input('press enter...')

@@ -302,5 +302,5 @@ with open('report.txt', 'w') as f:
                 les_data['news_link'] + '\n\n')
 
 print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + 'report.txt')
-# input('press enter...')
 driver.turnoff()
+# input('press enter...')

@@ -119,11 +119,11 @@ def parse_courses(les):
         timetable.remove(les)
 
 
-print('Progress: |' + Back.WHITE + ' ' * 50 + Back.RESET + '| ' + '0%'.rjust(4), end='')
+print('Progress: |' + Back.WHITE + ' ' * 50 + Back.RESET + '|   0%', end='')
 progress = 0
 with ThreadPoolExecutor(8) as executor:
     executor.map(parse_courses, list(timetable))
-print('\rProgress: |' + Back.BLUE + '#' * 50 + Back.RESET + '| ' + Fore.GREEN + '100%')
+print('\rProgress: |' + Back.BLUE + '#' * 50 + Back.RESET + '| ' + Fore.GREEN + '100% ')
 
 # Counting number of lessons with group in one day
 for i in range(len(timetable)):
@@ -145,5 +145,5 @@ with open(f_name, 'wb') as f:
     pickle.dump(timetable, f)
 
 print(Fore.GREEN + 'All work is done! Collected data was written in ' + Fore.CYAN + f_name + Fore.GREEN + ' file.')
-# input('press enter...')
 driver.turnoff()
+# input('press enter...')

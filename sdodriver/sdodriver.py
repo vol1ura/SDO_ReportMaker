@@ -8,9 +8,9 @@ from time import sleep
 class FFDriver(webdriver.Firefox):
     def __init__(self, driver_path):
         from selenium.webdriver.firefox.options import Options  # for Firefox browser
-        # webdriver.Safari(executable_path = r'/usr/bin/safaridriver') # for MacOS
         opts = Options()
         opts.add_argument('--headless')
+        opts.add_argument('--disable-gpu')
         opts.add_argument('--ignore-certificate-errors')
         super().__init__(options=opts, executable_path=driver_path)
 
@@ -20,6 +20,7 @@ class GCDriver(webdriver.Chrome):
         from selenium.webdriver.chrome.options import Options  # for Chrome browser
         opts = Options()
         opts.add_argument('--headless')
+        opts.add_argument('--disable-gpu')
         opts.add_argument('--ignore-certificate-errors')
         super().__init__(chrome_options=opts, executable_path=driver_path)
 
