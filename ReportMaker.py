@@ -19,7 +19,7 @@ from colorama import Back
 from datetime import timedelta
 import os
 import re
-from sdodriver import edge as sdo
+from sdodriver import sdodriver as sdo
 from sdodriver.infoout import *
 from sdodriver.webdav import Cloud
 from selenium.webdriver.common.by import By
@@ -140,7 +140,7 @@ for les_data in report_data:
 # =============================================================================
 mymes('Login on [sdo.rgsu.net]', 0, False)
 driver.open_sdo(login, password)
-mymes('Authorized', 1)
+
 today_attendance = []
 prev_group = ''
 for les_data in report_data:

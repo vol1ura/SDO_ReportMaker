@@ -20,11 +20,12 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import pickle
 import re
-from sdodriver import edge as sdo
+from sdodriver import sdodriver as sdo
 from sdodriver.infoout import mymes, get_settings
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 import sys
+
 
 login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
 

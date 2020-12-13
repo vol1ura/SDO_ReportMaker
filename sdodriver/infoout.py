@@ -49,16 +49,16 @@ def read_data(file_date: datetime):
     It is used for transfer data from one module to another.
     Parameter file_date is a begin of week for which we run modules.
 
-    :param file_date: datetime
+    :param file_date: date of begin of week for which table should be imported
     :return: list
     """
     f_name = 'sdoweek_' + file_date.strftime("%d_%m_%y") + '.dat'
     try:
         with open(f_name, 'rb') as f:
-            data = pickle.load(f)
+            timetable = pickle.load(f)
     except Exception as e:
         print(e)
         sys.exit(Fore.RED + f'Error when reading {f_name}! You should create it first by getWeekData script.')
     print('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported' +
           '.' * (80 - len(f_name) - 21) + Fore.GREEN + '[+]')
-    return data
+    return timetable

@@ -1,12 +1,15 @@
-from msedge.selenium_tools import Edge, EdgeOptions  # pip install msedge-selenium-tools
+# This is package for using Edge driver with selenium 3.141.
 # If you are able to upgrade to Selenium 4 Alpha, there is no need to use this package as
-# Selenium should already have everything you need built in! pip install selenium==4.0.0.a7
+# Selenium should already have everything you need built in!
+# Use pip install selenium==4.0.0.a7
+# In other case install additional package for selenium 3.141:
+# pip install msedge-selenium-tools
+from msedge.selenium_tools import Edge, EdgeOptions
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 from time import sleep
-import sys
 
 
 class Driver(Edge):   # for Edge browser
@@ -40,9 +43,9 @@ class Driver(Edge):   # for Edge browser
         try:
             self.wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]'))).click()
         except TimeoutException:
-            print('Error! Incorrect login or password.')
-            input('press enter...')
-            sys.exit(1)
+            raise Exception('Error! Incorrect login or password.')
+        else:
+            print('OK!')
 
     def open_cloud(self, login, password):
         self.get('https://cloud.rgsu.net/')

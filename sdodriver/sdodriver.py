@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
@@ -53,9 +54,12 @@ class Driver(FFDriver, GCDriver, SDriver):
         element = self.wait.until(ec.element_to_be_clickable((By.ID, 'submit')))  # submit authorization
         element.click()
         sleep(1)
-        # tutor mode ON:
-        element = self.wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]')))
-        element.click()
+        try:  # tutor mode ON:
+            self.wait.until(ec.element_to_be_clickable((By.XPATH, '//div[@class="hm-roleswitcher"]/div[2]'))).click()
+        except TimeoutException:
+            raise Exception('Error! Incorrect login or password.')
+        else:
+            print('OK!')
 
     def open_cloud(self, login, password):
         self.get('https://cloud.rgsu.net/')

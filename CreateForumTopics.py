@@ -18,8 +18,9 @@
 from colorama import Back
 from datetime import timedelta
 from sdodriver.infoout import *
-from sdodriver import edge as sdo
+from sdodriver import sdodriver as sdo
 import sys
+
 
 login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
 

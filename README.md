@@ -3,11 +3,13 @@
 
 ## Как пользоваться?
 
-#### Установка и настройка
+### Установка и настройка
 1. [Скачать все скрипты](https://github.com/vol1ura/SDO_ReportMaker/archive/master.zip) из репозитория в какой-нибудь каталог на компьютере
-2. *Скачать драйвер* своего браузера (см. ниже)
+2. *Скачать драйвер* своего браузера
 3. *Настроить* интерпретатор Python, либо воспользоваться собранными `exe` файлами (в папке `exe`)
-3. *Cоздать текстовый файл* `settings.txt` в каталоге скрипта (см. ниже)
+4. *Cоздать текстовый файл* `settings.txt` в каталоге скрипта
+
+Подробное описание пунктов 2-4 см. ниже.
 
 ### Создание отчёта
 #### Подготовка к рабочей неделе
@@ -46,7 +48,7 @@ python CreateForumTopics.py n
 
 ![Forum Topic](pics/screenshot5.png)
 
-#### Делаем отчёт
+#### 3. Делаем отчёт
 В конце рабочего дня делаем стандартный отчёт о проведённых занятиях. Порядок действий следующий
 1. *Видеозаписи* проведённых занятий должны именоваться последовательно Video1 Video2 ... Video9 (одно видео - одна пара). Желательно, чтобы они находились в отдельной папке на диске
 2. *Запускаем скрипт* либо из командной строки `python ReportMaker.py` либо кликая `ReportMaker.exe`. Если отчёт заполняется за другой день, надо передать дату через командную строку `python ReportMaker.py дд.мм.гг` или `ReportMaker.exe дд.мм.гг` (заполнить можно только отчёты текущей недели)
@@ -66,13 +68,43 @@ python CreateForumTopics.py n
 
 * Файл `report.txt` в том же каталоге c результатами работы скрипта - пары, группы, количество посещений, ссылка на новость, ссылка на видеоматериал.
 
-## Формат файла settings.txt
+## Описание настройки и установки
+
+### Установка и настройка драйвера браузера
+Если вы используете Firefox, то скачиваете `geckodriver.exe`, а если Chrome, то `chromedriver.exe`. В `settings.txt` прописываем название браузера, скрипт автоматически определяет какой драйвер использовать и какие модули загружать.
+
+При использовании Edge **версия драйвера должна точно соответствовать версии браузера** в системе (см. скриншот ниже). Подробнее см. [документацию](https://docs.microsoft.com/en-us/microsoft-edge/webdriver-chromium/?tabs=python). 
+Кроме того, в скриптах надо будет изменить название подключаемого модуля с `from sdodriver import sdodriver as sdo`
+на `from sdodriver import edge as sdo`. 
+
+![Edge version](pics/screenshot2.png)
+
+**Замечание.** Драйвер Edge работает быстро, но выдаёт логи в консоль (как это победить я не знаю), и его модуль плохо дружит с модулями других драйверов selenium.
+
+При использовании Safari потребуются дополнительные настройки браузера. Кроме того, там не доступен headless режим.
+
+###### Ссылки для загрузки драйвера
+1. geckodriver доступен здесь [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
+2. chromedriver доступен здесь [https://sites.google.com/a/chromium.org/chromedriver/home](https://sites.google.com/a/chromium.org/chromedriver/home)
+3. msedgedriver доступун здесь [https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/)
+4. safaridriver доступен здесь [https://webkit.org/blog/6900/webdriver-support-in-safari-10/](https://webkit.org/blog/6900/webdriver-support-in-safari-10/)
+
+### Настройка интерпретатора Python
+
+1. Скачать и установить Python https://www.python.org/downloads/
+2. В cmd или в PowerShell перейти в каталог с распакованными скриптами и выполнить установку необходимых пакетов
+```bash
+pip install --upgrade pip
+pip install -r requirements.ini
+```
+
+### Формат файла settings.txt
 Создаём простой текстовый файл, состоящий из 6 строк: 
 1. Ваш *логин* для [sdo.rgsu.net](https://sdo.rgsu.net)
 2. Ваш *пароль* для [sdo.rgsu.net](https://sdo.rgsu.net)
 3. *URL-токен* для доступа к [cloud.rgsu.net](https://cloud.rgsu.net) по протоколу WebDAV
 4. *Путь к каталогу с видеозаписями* проведённых в этот день занятий. Число видео = числу пар в этот день! Файлы должны называться **строго** Video1, Video2 и т.д.
-5. *Название вашего браузера* - Firefox или Google Chrome. Под Safari скрипт нужно поправить вручную.
+5. *Название вашего браузера* - Firefox, Google Chrome, Edge или Safari.
 6. *Путь к драйверу* вашего браузера (можно поместить его, например, в каталоге вместе со скриптами - см. пример)
 
 Если где-то, например, в пути к видеофайлам используется кириллица, файл должен быть сохранён **строго** в кодировке UTF-8! Но лучше, чтобы пути были без кириллицы и без пробелов.
@@ -102,34 +134,13 @@ URL-токен копируется из личного кабинета [cloud.
 
 ## Системные требования
 * Python версии не ниже 3.4, а лучше не ниже 3.7
-* Установлены пакет selenium, colorama, webdavclient3 для Python - `pip install colorama selenium webdavclient3`
-* Скрипт протестирован с браузером Firefox v83.0 (64-битный) и драйвером geckodriver v0.28.0 (win64), Windows 10
-* Скрипт протестирован с браузером Edge и драйвером edgedriver v87.0.664.60 (win64), Windows 10
+* Установлены пакеты selenium 4 alpha, colorama, webdavclient3 (см. `requirements.ini`)
+* Скрипт протестирован с браузером Firefox v83.0 (64-битный) и драйвером geckodriver v0.28.0 (win64) на Windows 10
+* Скрипт протестирован с браузером Edge и драйвером edgedriver v87.0.664.60 (win64) на Windows 10
 * Сообщалось, что с Chrome и chromedriver 32bit тоже всё работает
 * Стабильное скоростное подключение к Internet (20 Mbit/s и выше)
 * Оперативная память от 2 Gb
 * Разрешение экрана не менее FullHD (1920×1080 pixels)
-
-## Драйвер браузера
-Если вы используете Firefox, то скачиваете `geckodriver.exe`, а если Chrome, то `chromedriver.exe`. В `settings.txt` прописываем название браузера, скрипт автоматически определяет какой драйвер использовать и какие модули загружать.
-
-При использовании Edge **версия драйвера должна точно соответствовать версии браузера** в системе. Помимо Selenium версии 3.141.0, необходимо доустановить ещё пакет
-```bash
-pip install msedge-selenium-tools
-```
-Либо поставить Selenium 4 Alpha - эта версия пакета включает в себя всё необходимое для Edge: 
-```bash
-pip install selenium==4.0.0.a7
-```
-Подробнее см. [документацию](https://docs.microsoft.com/en-us/microsoft-edge/webdriver-chromium/?tabs=python)
-
-При использовании Safari потребуются дополнительные настройки браузера. Кроме того, там не доступен headless режим.
-
-###### Ссылки для загрузки драйвера
-1. geckodriver доступен здесь [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
-2. chromedriver доступен здесь [https://sites.google.com/a/chromium.org/chromedriver/home](https://sites.google.com/a/chromium.org/chromedriver/home)
-3. msedgedriver доступун здесь [https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/)
-4. safaridriver доступен здесь [https://webkit.org/blog/6900/webdriver-support-in-safari-10/](https://webkit.org/blog/6900/webdriver-support-in-safari-10/)
 
 ### Примеры работы программы
 ![Uploading video](pics/screenshot0.png)
@@ -141,7 +152,7 @@ pip install selenium==4.0.0.a7
 ###### Версия 3.3:
 * Улучшена производительность, повышена стабильность
 * Переработан код - основные блоки выделены в универсальный модуль `sdodriver`. Дописаны классы для использования с браузерами Safari и Edge
-* Протестирована работа с браузером Edge. Работает шустро. В данной версии он используется по умолчанию.
+* Протестирована работа с браузером Edge. Работает шустро.
 
 ###### Версия 3.2:
 * Оптимизация локаторов элементов, небольшое ускорение в модулях `getWeekData` и `ReportMaker`
