@@ -17,8 +17,8 @@
 #
 from colorama import Back
 from datetime import timedelta
-from infoout import *
-import sdodriver
+from sdodriver.infoout import *
+from sdodriver import edge as sdo
 import sys
 
 login, password, _, _, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
@@ -39,7 +39,7 @@ timetable.sort(key=lambda les: (les['forum'], -les['pair']))
 
 # Browser driver initialization
 mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
-driver = sdodriver.Driver(browser, browser_driver_path)
+driver = sdo.Driver(browser, browser_driver_path)
 # Login on sdo.rgsu.net
 mymes('Login on [sdo.rgsu.net]', 0, False)
 driver.open_sdo(login, password)

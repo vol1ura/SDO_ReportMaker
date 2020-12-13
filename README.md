@@ -4,9 +4,9 @@
 ## Как пользоваться?
 
 #### Установка и настройка
-1. *Скачать все скрипты* из репозитория в какой-нибудь каталог на компьютере
+1. [Скачать все скрипты](https://github.com/vol1ura/SDO_ReportMaker/archive/master.zip) из репозитория в какой-нибудь каталог на компьютере
 2. *Скачать драйвер* своего браузера (см. ниже)
-3. *Настроить* интерпретатор Python, либо воспользоваться собранными `exe` файлами
+3. *Настроить* интерпретатор Python, либо воспользоваться собранными `exe` файлами (в папке `exe`)
 3. *Cоздать текстовый файл* `settings.txt` в каталоге скрипта (см. ниже)
 
 ### Создание отчёта
@@ -73,7 +73,7 @@ python CreateForumTopics.py n
 3. *URL-токен* для доступа к [cloud.rgsu.net](https://cloud.rgsu.net) по протоколу WebDAV
 4. *Путь к каталогу с видеозаписями* проведённых в этот день занятий. Число видео = числу пар в этот день! Файлы должны называться **строго** Video1, Video2 и т.д.
 5. *Название вашего браузера* - Firefox или Google Chrome. Под Safari скрипт нужно поправить вручную.
-6. *Путь к драйверу* вашего браузера (можно поместить его, например, в том же каталоге - см. пример)
+6. *Путь к драйверу* вашего браузера (можно поместить его, например, в каталоге вместе со скриптами - см. пример)
 
 Если где-то, например, в пути к видеофайлам используется кириллица, файл должен быть сохранён **строго** в кодировке UTF-8! Но лучше, чтобы пути были без кириллицы и без пробелов.
 
@@ -82,8 +82,8 @@ python CreateForumTopics.py n
 > qWerTy<br />
 > https://cloud.rgsu.net/remote.php/dav/files/AAA1BBBC-1234-5678-9DEF-AA00000000BC/ <br />
 > C:\\Users\\Yuriy\\Downloads\\rgsu_video<br />
-> Firefox<br />
-> .\\geckodriver.exe
+> Edge<br />
+> .\\msedgedriver.exe
 
 URL-токен копируется из личного кабинета [cloud.rgsu.net](https://cloud.rgsu.net). Это делается единожды. По сути, в настройках далее больше ничего менять не придётся, **отчёты будут заполняться одним кликом мышкой**
 
@@ -103,18 +103,33 @@ URL-токен копируется из личного кабинета [cloud.
 ## Системные требования
 * Python версии не ниже 3.4, а лучше не ниже 3.7
 * Установлены пакет selenium, colorama, webdavclient3 для Python - `pip install colorama selenium webdavclient3`
-* Скрипт протестирован с браузером Firefox v83.0 (64-битный). Сообщалось, что с Chrome тоже работает
-* Скрипт протестирован с драйвером браузера geckodriver v0.28.0 (win64). Сообщалось, что chromedriver 32bit тоже работает
+* Скрипт протестирован с браузером Firefox v83.0 (64-битный) и драйвером geckodriver v0.28.0 (win64), Windows 10
+* Скрипт протестирован с браузером Edge и драйвером edgedriver v87.0.664.60 (win64), Windows 10
+* Сообщалось, что с Chrome и chromedriver 32bit тоже всё работает
 * Стабильное скоростное подключение к Internet (20 Mbit/s и выше)
 * Оперативная память от 2 Gb
 * Разрешение экрана не менее FullHD (1920×1080 pixels)
 
 ## Драйвер браузера
 Если вы используете Firefox, то скачиваете `geckodriver.exe`, а если Chrome, то `chromedriver.exe`. В `settings.txt` прописываем название браузера, скрипт автоматически определяет какой драйвер использовать и какие модули загружать.
- 
+
+При использовании Edge **версия драйвера должна точно соответствовать версии браузера** в системе. Помимо Selenium версии 3.141.0, необходимо доустановить ещё пакет
+```bash
+pip install msedge-selenium-tools
+```
+Либо поставить Selenium 4 Alpha - эта версия пакета включает в себя всё необходимое для Edge: 
+```bash
+pip install selenium==4.0.0.a7
+```
+Подробнее см. [документацию](https://docs.microsoft.com/en-us/microsoft-edge/webdriver-chromium/?tabs=python)
+
+При использовании Safari потребуются дополнительные настройки браузера. Кроме того, там не доступен headless режим.
+
 ###### Ссылки для загрузки драйвера
 1. geckodriver доступен здесь [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
-2. chromedriver доступен здесь [https://github.com/mozilla/geckodriver/releases](https://sites.google.com/a/chromium.org/chromedriver/home)
+2. chromedriver доступен здесь [https://sites.google.com/a/chromium.org/chromedriver/home](https://sites.google.com/a/chromium.org/chromedriver/home)
+3. msedgedriver доступун здесь [https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/)
+4. safaridriver доступен здесь [https://webkit.org/blog/6900/webdriver-support-in-safari-10/](https://webkit.org/blog/6900/webdriver-support-in-safari-10/)
 
 ### Примеры работы программы
 ![Uploading video](pics/screenshot0.png)
@@ -125,6 +140,8 @@ URL-токен копируется из личного кабинета [cloud.
 
 ###### Версия 3.3:
 * Улучшена производительность, повышена стабильность
+* Переработан код - основные блоки выделены в универсальный модуль `sdodriver`. Дописаны классы для использования с браузерами Safari и Edge
+* Протестирована работа с браузером Edge. Работает шустро. В данной версии он используется по умолчанию.
 
 ###### Версия 3.2:
 * Оптимизация локаторов элементов, небольшое ускорение в модулях `getWeekData` и `ReportMaker`
@@ -162,7 +179,7 @@ URL-токен копируется из личного кабинета [cloud.
 * Оптимизированы задержки и ускорена работа
 * Повышена стабильность
 * Локаторы элементов изменены на более универсальные
-* Добавлен файл `ReportMaker.bat` для запуска скрипта сразу из проводника Windows (рекомендуется)
+* ~~Добавлен файл `ReportMaker.bat` для запуска скрипта сразу из проводника Windows (рекомендуется)~~
 * Хранение всех настроек в одном файле
 
 ###### Версия 0.92a:

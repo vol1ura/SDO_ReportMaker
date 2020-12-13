@@ -17,10 +17,11 @@
 #
 from colorama import Back
 from datetime import timedelta
-from infoout import *
 import os
 import re
-import sdodriver
+from sdodriver import edge as sdo
+from sdodriver.infoout import *
+from sdodriver.webdav import Cloud
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
@@ -53,7 +54,7 @@ report_data.sort(key=lambda les: les['group'])  # sorting by group to minimize p
 # =============================================================================
 # Unloading video files on cloud.sdo.net
 # =============================================================================
-client = sdodriver.CloudDriver(login, password, token)
+client = Cloud(login, password, token)
 mymes('WebDAV protocol is initialized', 0)
 
 rem_folders = ['Запись занятий', date.strftime("%Y") + '_год', date.strftime("%m") + '_месяц', date.strftime('%m_%d')]
@@ -91,7 +92,7 @@ if pair_count != video_count:
 # =============================================================================
 # Browser driver initialization
 mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
-driver = sdodriver.Driver(browser, browser_driver_path)
+driver = sdo.Driver(browser, browser_driver_path)
 mymes('Open [cloud.rgsu.net] for uploading and sharing files.', 0, False)
 driver.open_cloud(login, password)
 mymes('Authorization', 3)

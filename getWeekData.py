@@ -18,10 +18,10 @@
 from colorama import Fore, Back
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from infoout import mymes, get_settings
 import pickle
 import re
-import sdodriver
+from sdodriver import edge as sdo
+from sdodriver.infoout import mymes, get_settings
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 import sys
@@ -43,7 +43,7 @@ week_dates = [begin_date + timedelta(i) for i in range(6)]
 
 # Browser driver initialization
 mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
-driver = sdodriver.Driver(browser, browser_driver_path)
+driver = sdo.Driver(browser, browser_driver_path)
 # Login on sdo.rgsu.net
 mymes('Login on [sdo.rgsu.net]', 0, False)
 driver.open_sdo(login, password)
