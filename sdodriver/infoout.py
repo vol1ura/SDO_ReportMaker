@@ -62,3 +62,12 @@ def read_data(file_date: datetime):
     print('File ' + Fore.CYAN + f_name + Fore.WHITE + ' was imported' +
           '.' * (80 - len(f_name) - 21) + Fore.GREEN + '[+]')
     return timetable
+
+
+def approve(mes=''):
+    while True:
+        i = input(mes + (' ' if len(mes) else '') + 'Continue (y/n)?')
+        if i == 'y':
+            break
+        elif i == 'n':
+            sys.exit('Program was canceled.')
