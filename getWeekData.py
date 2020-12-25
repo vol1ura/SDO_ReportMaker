@@ -40,7 +40,7 @@ else:
 while begin_date.isoweekday() != 1:
     begin_date -= timedelta(1)
 print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
-week_dates = [begin_date + timedelta(i) for i in range(6)]
+WEEKDAYS = {'Понедельник': 0, 'Вторник': 1, 'Среда': 2, 'Четверг': 3, 'Пятница': 4, 'Суббота': 5}
 
 # Browser driver initialization
 mymes("Driver is starting now. Please wait, don't close windows!", 0, False)
@@ -62,7 +62,7 @@ for row, pair in enumerate(pairs):
     pair_cells = pair.find_elements_by_tag_name('td')
     cell3 = pair_cells[2].text  # discipline and dates in a single cell
     discipline = re.sub(r'\s?\d{2}.\d{2}.(\d{2}|\d{4});?', '', cell3).strip()
-    cell_date = [date for date in week_dates if date.strftime("%d.%m.%y") in cell3][0]
+    cell_date = begin_date + timedelta(WEEKDAYS[pair_cells[6].text.strip()])
     cell_date = cell_date.replace(hour=int(pair_cells[0].text.strip()[:2]),
                                   minute=int(pair_cells[0].text.strip()[3:5]), second=0, microsecond=0)
     # counting lesson number for each day int timetable:

@@ -117,7 +117,6 @@ if len(local_paths) > 0:
         sleep(0.8)
     print('')
     client.free_space()
-    # driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))  # maybe it is no need
     mymes('Start sharing files', 1, False)
 
 video_links = []
@@ -157,7 +156,7 @@ for les_data in report_data:
         if (les_data['time'].strftime("%d.%m.%Y") in topic_title) and \
                 (les_data['time'].strftime("%H:%M") in topic_title):
             element = topic.find_element_by_class_name('topic-expand-comments')
-            driver.scroll_page(element)
+            driver.scroll_page(element, 1)
             element.click()  # expand all comments
             mymes('Opening and gathering messages', 1, False)
             comments = topic.find_elements_by_class_name('topic-comment-author-and-pubdate')
@@ -252,7 +251,7 @@ for les_data in report_data:
         news_text = f"<p>Занятие от {date.strftime('%d.%m.%Y')} г.:</p><ul>"
         for les_data1 in report_data:
             if les_data['group'] == les_data1['group']:
-                news_text += '<li><a href="' + les_data1['video'] + '">Запись трасляции занятия</a>&nbsp;(' \
+                news_text += '<li><a href="' + les_data1['video'] + '">Запись трансляции занятия</a>&nbsp;(' \
                              + les_data1['type'] + ',&nbsp;' + les_data1['time'].strftime("%H:%M") + ' - ' \
                              + (les_data1['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + ')'
         news_text += '</ul>'
