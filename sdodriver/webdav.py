@@ -27,7 +27,7 @@ class Cloud(Client):
 
     def check_path(self, p_dir: str):
         """
-        Checks if directory exists, if not then create such path
+        Check's if directory exists, if not then create such path
 
         :param p_dir: directory path to check
         :return: print info if directory was created

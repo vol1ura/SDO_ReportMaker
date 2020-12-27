@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# ==================== Version 3.3 =================================
+# ==================== Version 3.31 =================================
 # ReportMaker - make teacher's report on SDO.RSSU.NET.
 # Copyright (c) 2020 Yuriy Volodin, volodinjuv@rgsu.net
 #
@@ -22,6 +22,7 @@ import re
 from sdodriver import sdodriver as sdo
 from sdodriver.infoout import *
 from sdodriver.webdav import Cloud
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
@@ -125,7 +126,10 @@ share_buttons = fileList.find_elements_by_xpath('.//a[@data-action="Share"]/span
 for b in share_buttons:
     b.click()
     mymes('Sharing file', 2.5)
-    driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
+    try:
+        driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
+    except TimeoutException:
+        print(Fore.YELLOW + 'It seems the file is already shared. I will try to get his link.')
     # One click somewhere to close menu:
     driver.find_element_by_xpath('//*[@id="filestable"]/tfoot/tr/td[2]/span/span[3]').click()
     link_button = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
@@ -180,7 +184,12 @@ for les_data in report_data:
         mymes('Loading attendance journal', 1)
         # ######### Preparing journal for parsing and filling up #######################################################
         # Open drop-down menu
-        select_group = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
+        try:
+            select_group = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
+        except TimeoutException:
+            print(Fore.RED + f"Warning! Can't open attendance journal for {les_data['group']}. It will be skipped.")
+            prev_group = ''  # to re-load page and try next time if this group meet on next step
+            continue
         # cycle through elements in drop-down list to find our group
         element = select_group.find_elements_by_tag_name("option")  # groups in drop-down menu
         if len(element) > 2:  # if only one group in journal drop-down menu then this step will be skipped:
@@ -197,7 +206,7 @@ for les_data in report_data:
     element.click()  # close menu panel
     # ######## End of preparation page #############################################################################
     # Get head of journal table:
-    table_head = driver.wait.until(ec.presence_of_element_located((By.XPATH, '//*[@id="journal"]/table/thead/tr')))
+    table_head = driver.find_element_by_xpath('//*[@id="journal"]/table/thead/tr')
     for cell_head in table_head.find_elements_by_tag_name('th')[1:-2]:
         id_th_day = cell_head.get_attribute('id')[7:]
         # Checking column with this id for emptiness. Selecting cell with presence:

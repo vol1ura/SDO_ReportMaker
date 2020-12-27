@@ -30,7 +30,7 @@ while begin_date.isoweekday() != 1:
     begin_date -= timedelta(1)
 print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # Begin of week
 
-approve('This program will create forum topics for this week.')
+approve('This program will create forum topics.')
 
 LOGIN_URL = 'https://sdo.rgsu.net/index/authorization/role/guest/mode/view/name/Authorization'
 TUTOR_URL = 'https://sdo.rgsu.net/switch/role/tutor'
