@@ -22,7 +22,7 @@ import re
 from sdodriver import sdodriver as sdo
 from sdodriver.infoout import *
 from sdodriver.webdav import Cloud
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
@@ -144,7 +144,6 @@ for les_data in report_data:
 mymes('Login on [sdo.rgsu.net]', 0, False)
 driver.open_sdo(login, password)
 
-today_attendance = []
 prev_group = ''
 for les_data in report_data:
     if les_data['group'] != prev_group:
@@ -152,7 +151,7 @@ for les_data in report_data:
         # Go to forum. Take lesson from timetable
         driver.get(les_data['forum'])
         mymes('Checking attendance of students', 1, False)
-    attendance_set = set([])
+    les_data['group_a'] = set()  # for adding students id that was on the lesson
     # Parse students
     topics = driver.find_elements_by_xpath('//li[@class="topic topic-text-loaded"]')
     for topic in topics:
@@ -167,17 +166,15 @@ for les_data in report_data:
             for comment in comments:
                 comment_date = comment.find_element_by_tag_name('time').get_attribute('datetime')
                 comment_date = datetime.fromisoformat(comment_date)
-                comment_name = re.search(r'[a-zа-яё\-\s]+', comment.text, re.I)[0]
                 if les_data['time'] <= comment_date <= les_data['time'] + timedelta(hours=1, minutes=30):
-                    attendance_set.add(comment_name)
-    les_data['group_a'] = attendance_set
+                    comment_user_url = comment.find_element_by_xpath('.//a').get_attribute('href')
+                    les_data['group_a'].add(re.search(r'(?<=user_id/)\d+', comment_user_url)[0])
 
 # =============================================================================
 # Let's go to attendance page of current lesson type
 # =============================================================================
 prev_group = ''
 for les_data in report_data:
-    attendance_count = 0  # attendance counter
     if les_data['group'] != prev_group:
         driver.get(les_data['journal'])
         prev_group = les_data['group']
@@ -222,20 +219,19 @@ for les_data in report_data:
             element.send_keys(Keys.BACKSPACE * 10)
             element.send_keys(les_data['time'].strftime("%d.%m.%Y"))  # Set date for column
             # Check students in journal and count them
-            journal_rows = driver.find_elements_by_xpath('//tr[contains(@class, "fio-cell")]')
-            for journal_row in journal_rows:
-                if journal_row.find_element_by_tag_name('b').text in les_data['group_a']:
-                    driver.scroll_page(journal_row, 1)
-                    attendance_count += 1
-                    get_link = journal_row.find_element_by_tag_name('a').get_attribute('href')
-                    id_user = re.search(r'\d+$', get_link)[0]
-                    journal_row.find_element_by_id('isBe_user_' + id_user + '_' + id_th_day).click()
+            for user_id in list(les_data['group_a']):
+                try:
+                    element = driver.find_element_by_xpath(f'//input[@id="isBe_user_{user_id}_{id_th_day}"]')
+                except(TimeoutException, NoSuchElementException):
+                    les_data['group_a'].remove(user_id)
+                    continue
+                driver.scroll_page(element, 1)
+                element.click()
             break  # Exit cycle by head of table and go to next les_data
     element = driver.find_element_by_xpath('//*[@id="main"]/div[3]')
     driver.scroll_page(element, 1)
-    element.click()  # open meny panel
+    element.click()  # open menu panel
     element = driver.find_element_by_xpath('//input[@value="Сохранить"]')
-    les_data['attendance'] = attendance_count
     driver.scroll_page(element, 1)
     element.click()
     driver.find_elements_by_xpath('//div/button[1]/span')[0].click()  # /html/body/div[2]/div[3]/div/button[1]/span
@@ -274,7 +270,6 @@ for les_data in report_data:
         driver.find_element_by_id('insert').click()
         driver.switch_to.default_content()
         driver.find_element_by_id('submit').click()
-        # mymes('Saving news', 1)  # This timeout is no needed and can be commented or deleted!
         get_link = driver.wait.until(
             ec.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
         les_data['news_link'] = get_link.get_attribute('href')
@@ -291,23 +286,19 @@ for les_data in report_data:
     report_button = pairs[les_data['row']].find_element_by_tag_name('button')
     driver.scroll_page(report_button, 1.5)
     report_button.click()
-    if 'attendance' not in les_data:
-        print(Fore.RED + f"Attention! Attendance for {les_data['group']} has not been calculated!")
-        print(Fore.RED + 'Verify that journals are filled out correctly and make corrections manually.')
-        les_data['attendance'] = 0
-    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + str(les_data['attendance']))
+    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + f"{len(les_data['group_a'])}")
     driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
     driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
     driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
     mymes('Report for ' + les_data['group'], 2)
 
 with open('report.txt', 'w') as f:
-    f.write('This day you have next lessons\n\n')
-    f.write('N\ttime time\tlesson_type\tgroup\t students\t Link in cloud.sdo.net\t Link in news\n\n')
+    f.write(' ' * 20 + 'This day you have next lessons\n')
+    f.write('N  time \tlesson_type \tgroup\t students\tCloud link\tNews link\n')
+    f.write('-' * 80 + '\n')
     for les_data in report_data:
-        f.write(str(les_data['pair']) + '\t' + les_data['time'].strftime("%H:%M") + '\t' + les_data['type'] + ' ' +
-                les_data['group'] + '\t' + str(les_data['attendance']) + '\t' + les_data['video'] + ' ' +
-                les_data['news_link'] + '\n\n')
+        f.write(f"{les_data['pair']}  {les_data['time'].strftime('%H:%M')}\t{les_data['type']} " +
+                f"{les_data['group']}\t{len(les_data['group_a'])}\n{les_data['video']}\n{les_data['news_link']}\n\n")
 
 print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + 'report.txt')
 driver.turnoff()
