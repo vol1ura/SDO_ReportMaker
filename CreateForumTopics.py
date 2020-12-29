@@ -17,8 +17,8 @@
 # =============================================================================
 from colorama import Back
 from datetime import timedelta
-import requests
 from sdodriver.infoout import *
+from sdodriver.sdo_requests import Session
 import sys
 
 
@@ -32,42 +32,8 @@ print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y
 
 approve('This program will create forum topics.')
 
-LOGIN_URL = 'https://sdo.rgsu.net/index/authorization/role/guest/mode/view/name/Authorization'
-TUTOR_URL = 'https://sdo.rgsu.net/switch/role/tutor'
-URL = 'https://sdo.rgsu.net'
-
-# =============================================================================
-# Create payload
-# =============================================================================
 SETTINGS = get_settings('settings.txt')
-payload = {
-    "start_login": 1,
-    "login": SETTINGS[0].strip(),
-    "password": SETTINGS[1].strip()
-}
-# HTTP headers for sdo.rgsu.net
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0',
-    'Accept': '*/*',
-    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'X-Requested-With': 'XMLHttpRequest',
-    'Origin': URL,
-    'Connection': 'keep-alive',
-    'Referer': 'https://sdo.rgsu.net/'}
-
-sdo = requests.session()
-
-# Perform login
-response = sdo.post(LOGIN_URL, data=payload, headers=headers)
-if response.ok and ('Пользователь успешно авторизован.' in response.text):
-    print('Login OK!')
-else:
-    raise Exception('Login failed! Check settings.')
-response = sdo.get(TUTOR_URL, headers=headers)
-if response.ok:
-    print('Tutor mode ON!')
-else:
-    raise Exception('Connection not established. Try again.')
+sdo = Session(SETTINGS[0].strip(), SETTINGS[1].strip())
 
 # =============================================================================
 # Create forum topics for all groups in timetable
@@ -90,11 +56,9 @@ for i, lesson in enumerate(timetable):
                  'со списком подключенных к трансляции).</p><p><strong>Создайте сообщение </strong></p>' + \
                  '<ul><li><strong>В заголовке:</strong> присутствовал(а)</li>' + \
                  '<li><strong>В сообщении:</strong> присутствовал(а)</li></ul>'
-    payload = {'title': topic_title, 'text': topic_text}
-    headers['Referer'] = lesson['forum']
-    response = sdo.post(lesson['forum'] + '/0/newtheme/create', data=payload, headers=headers)
+    response = sdo.make_topic(topic_title, topic_text, lesson['forum'])
     if not response.ok:
-        print(f"\rCan't create topic for {lesson['group']}. See {lesson['forum']}.")
+        print(Back.RED + f"\rCan't create topic for {lesson['group']}. See {lesson['forum']}.")
     s = int(50 * (i + 1) / len(timetable) + 0.5)
     print('\rProgress: |' + Back.BLUE + '#' * s + Back.WHITE + ' ' * (50 - s) + Back.RESET + f'| {2 * s:>4}%', end='')
 print('\rProgress: |' + Back.BLUE + '#' * 50 + Back.RESET + '| ' + Fore.GREEN + '100% ')
