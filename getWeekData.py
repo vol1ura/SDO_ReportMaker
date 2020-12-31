@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# ========================== Version 3.31 ==============================================
+# ========================== Version 3.32 ==============================================
 # getWeekData  - Generate csv file with timetable data
 # Copyright (c) 2020 Yuriy Volodin volodinjuv@rgsu.net
 #
