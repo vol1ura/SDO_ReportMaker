@@ -207,15 +207,15 @@ for les_data in report_data:
     for cell_head in table_head.find_elements_by_tag_name('th')[1:-2]:
         id_th_day = cell_head.get_attribute('id')[7:]
         # Checking column with this id for emptiness. Selecting cell with presence:
-        id_column = driver.find_elements_by_xpath('//td[@class="is_be_row_' + id_th_day + '"]/div/p')
+        id_column = driver.find_elements_by_xpath(f'//td[@class="is_be_row_{id_th_day}"]/div/p')
         for id_cell in id_column:
             if id_cell.text == 'Был':
                 break
         else:  # If all column is empty then change date of column and fill it by clicking checkboxes:
-            element = driver.find_element_by_xpath('//a[contains(@onclick, "' + id_th_day + '")]')
+            element = driver.find_element_by_xpath(f'//a[contains(@onclick, "{id_th_day}")]')
             driver.scroll_page(element, 1)
             element.click()  # select edit mode of date field
-            element = driver.find_element_by_xpath('//input[contains(@id, "' + id_th_day + '")]')
+            element = driver.find_element_by_xpath(f'//input[contains(@id, "{id_th_day}")]')
             element.send_keys(Keys.BACKSPACE * 10)
             element.send_keys(les_data['time'].strftime("%d.%m.%Y"))  # Set date for column
             # Check students in journal and count them
