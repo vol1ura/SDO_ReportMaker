@@ -111,9 +111,13 @@ if len(local_paths) > 0:
     mymes('Task for upload was created', 2)
     while "none" not in driver.find_element_by_id('uploadprogressbar').get_attribute('style'):
         element = driver.find_element_by_id('uploadprogressbar')
-        k = int(float(element.get_attribute('aria-valuenow')) * 40 / 100 + 0.5)
-        attr = element.get_attribute('data-original-title')
-        inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
+        try:
+            k = int(float(element.get_attribute('aria-valuenow')) * 40 / 100 + 0.5)
+            attr = element.get_attribute('data-original-title')
+            inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
+        except KeyError:
+            k = 40
+            inf = 'done...'
         print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + f'| {inf:>26}', end='')
         sleep(0.8)
     print('')
@@ -129,7 +133,7 @@ for b in share_buttons:
     try:
         driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="sharing"]/ul[1]/li/button'))).click()
     except TimeoutException:
-        print(Fore.YELLOW + 'It seems the file is already shared. I will try to get his link.')
+        print(Fore.YELLOW + 'It seems the file is already shared. I will try to get the link.')
     # One click somewhere to close menu:
     driver.find_element_by_xpath('//*[@id="filestable"]/tfoot/tr/td[2]/span/span[3]').click()
     link_button = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
@@ -238,7 +242,7 @@ for les_data in report_data:
     mymes('Journal is completed', 2)
 
 # =============================================================================
-# Making news
+# Making news  TODO: rewrite this block using requests
 # =============================================================================
 prev_group = ''
 prev_link = ''
@@ -276,22 +280,8 @@ for les_data in report_data:
         prev_group = les_data['group']
         prev_link = les_data['news_link']
 
-# =============================================================================
-# Open timetable page to write report        
-# =============================================================================
-driver.get('https://sdo.rgsu.net/timetable/teacher')
-mymes('Report making', 2, False)
-for les_data in report_data:
-    pairs = driver.wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, 'tt-row')))
-    report_button = pairs[les_data['row']].find_element_by_tag_name('button')
-    driver.scroll_page(report_button, 1.5)
-    report_button.click()
-    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + f"{len(les_data['group_a'])}")
-    driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
-    driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
-    driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
-    mymes('Report for ' + les_data['group'], 2)
 
+# =============================================================================
 with open('report.txt', 'w') as f:
     f.write(' ' * 20 + 'This day you have next lessons\n')
     f.write('N  time \tlesson_type \tgroup\t students\tCloud link\tNews link\n')
@@ -299,6 +289,21 @@ with open('report.txt', 'w') as f:
     for les_data in report_data:
         f.write(f"{les_data['pair']}  {les_data['time'].strftime('%H:%M')}\t{les_data['type']} " +
                 f"{les_data['group']}\t{len(les_data['group_a'])}\n{les_data['video']}\n{les_data['news_link']}\n\n")
+# =============================================================================
+# Open timetable page to write report  TODO: rewrite this block using requests
+# =============================================================================
+driver.get('https://sdo.rgsu.net/timetable/teacher')
+mymes('Report making', 2, False)
+for les_data in report_data:
+    pairs = driver.wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, 'tt-row')))
+    report_button = pairs[les_data['row']].find_element_by_tag_name('button')
+    driver.scroll_page(report_button, 1)
+    report_button.click()
+    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + f"{len(les_data['group_a'])}")
+    driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
+    driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
+    driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
+    mymes('Report for ' + les_data['group'], 2)
 
 print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + 'report.txt')
 driver.turnoff()
