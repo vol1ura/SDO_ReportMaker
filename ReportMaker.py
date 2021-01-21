@@ -108,16 +108,15 @@ if len(local_paths) > 0:
     element = driver.find_element_by_xpath('//input[@type="file"]')
     element.send_keys(local_paths.strip())
 
-    mymes('Task for upload was created', 2)
+    mymes('Creating tasks for upload', 4)
     while "none" not in driver.find_element_by_id('uploadprogressbar').get_attribute('style'):
         element = driver.find_element_by_id('uploadprogressbar')
         try:
             k = int(float(element.get_attribute('aria-valuenow')) * 40 / 100 + 0.5)
             attr = element.get_attribute('data-original-title')
             inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
-        except KeyError:
-            k = 40
-            inf = 'done...'
+        except (KeyError, TypeError):
+            raise SystemExit('Failed to start files upload. Please, restart the script.')
         print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + f'| {inf:>26}', end='')
         sleep(0.8)
     print('')
