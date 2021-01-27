@@ -56,9 +56,9 @@ for i, lesson in enumerate(timetable):
                  'со списком подключенных к трансляции).</p><p><strong>Создайте сообщение </strong></p>' + \
                  '<ul><li><strong>В заголовке:</strong> присутствовал(а)</li>' + \
                  '<li><strong>В сообщении:</strong> присутствовал(а)</li></ul>'
-    response = sdo.make_topic(topic_title, topic_text, lesson['forum'])
+    response = sdo.make_topic(topic_title, topic_text, lesson['id'])
     if not response.ok:
-        print(Back.RED + f"\rCan't create topic for {lesson['group']}. See {lesson['forum']}.")
+        print(Back.RED + f"\rCan't create topic for {lesson['group']}, subject_id={lesson['id']}.")
     s = int(50 * (i + 1) / len(timetable) + 0.5)
     print('\rProgress: |' + Back.BLUE + '#' * s + Back.WHITE + ' ' * (50 - s) + Back.RESET + f'| {2 * s:>4}%', end='')
 print('\rProgress: |' + Back.BLUE + '#' * 50 + Back.RESET + '| ' + Fore.GREEN + '100% ')

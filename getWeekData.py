@@ -78,28 +78,26 @@ tree = fromstring(result.text)
 courses = tree.xpath('//*[@class="lesson_table"]')
 
 
-def parse_courses(les):
-    """
-    Find group in All courses table, parse link to course and get links to forum, to news page and to journal
+def parse_courses(lesson):
+    """Find group in All courses table, parse link to course and get links to forum, to news page and to journal
 
-    :param les: list with lesson data
+    :param lesson: dictionary with lesson data
     """
     global progress, courses
     for course in courses:
         course_text = course.xpath('.//*[@class="lesson_options"]')[0].text_content()
         # checking that left table pane contains our group:
-        if (les['group'] in course_text) and (les['discipline'] in course_text):
+        if (lesson['group'] in course_text) and (lesson['discipline'] in course_text):
             # finding link to page of this course
             link = course.xpath('.//div[@id="lesson_title"]/a/@href')[0]
             course_id = re.search(r'\d+$', link)[0]
-            les['forum'] = 'https://sdo.rgsu.net/forum/subject/subject/' + course_id
-            les['news'] = f'https://sdo.rgsu.net/news/index/index/subject_id/{course_id}/subject/subject'
+            lesson['id'] = course_id
             # finding link to journal of our lesson_type
             matches = re.finditer(r'{"CID":' + course_id + r',.*? - (.*?)(?:"|\().*?lesson_id\\/(\d+)',
                                   result.text, re.MULTILINE)
             for match in matches:
-                if les['type'][:6] in match.group(1).encode().decode('unicode-escape'):
-                    les['journal'] = f'https://sdo.rgsu.net/lesson/execute/index/lesson_id/{match.group(2)}' + \
+                if lesson['type'][:6] in match.group(1).encode().decode('unicode-escape'):
+                    lesson['journal'] = f'https://sdo.rgsu.net/lesson/execute/index/lesson_id/{match.group(2)}' + \
                                      f'/subject_id/{course_id}/day/all'
                     break
             progress += 1
@@ -108,10 +106,10 @@ def parse_courses(les):
                   ' ' * (50 - s) + Back.RESET + f'| {2 * s:>4}%', end='')
             break
     else:  # in case of error of sdo - group is missing in list My courses - remove this group from the list
-        print(Fore.RED + '\rWarning! Group ' + les['group'] + ' is missing in your list "My courses".\n' +
+        print(Fore.RED + '\rWarning! Group ' + lesson['group'] + ' is missing in your list "My courses".\n' +
               Fore.RESET + 'You need to address to technical support. Restart program after solving this problem. ' +
               'Now this group will be removed from data file and process will continue.')
-        timetable.remove(les)
+        timetable.remove(lesson)
 
 
 print('Progress: |' + Back.WHITE + ' ' * 50 + Back.RESET + '|   0%', end='')

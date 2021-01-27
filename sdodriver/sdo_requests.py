@@ -1,4 +1,5 @@
 import requests
+from lxml.html import parse
 
 
 class Session:
@@ -18,7 +19,7 @@ class Session:
     def sdo_post(self, url: str, payload: dict):
         return self.sdo.post(url, data=payload, headers=Session.get_headers(url))
 
-    def __init__(self, login, password):
+    def __init__(self, login: str, password: str):
         LOGIN_URL = 'https://sdo.rgsu.net/index/authorization/role/guest/mode/view/name/Authorization'
         payload = {
             "start_login": 1,
@@ -39,7 +40,7 @@ class Session:
         else:
             raise SystemExit('Tutor mode failed. Try again later.')
 
-    def make_news(self, announce: str, message: str, subject_id: str):
+    def make_news(self, announce: str, message: str, subject_id: str) -> str:
         url = '/news/index/new/subject/subject/subject_id/' + subject_id
         payload = {'id': 0,
                    'cancelUrl': url,
@@ -49,7 +50,12 @@ class Session:
                    'message': message,
                    'submit': 'Сохранить'
                    }
-        self.sdo_post(Session.SDO_URL + url, payload)
+        result = self.sdo_post(Session.SDO_URL + url, payload)
+        result = self.sdo.get(result.url.replace('/ajax/true', ''), stream=True)
+        result.raw.decode_content = True
+        tree = parse(result.raw)
+        created_news_link = tree.xpath('//div[@class="news-title"]/a/@href')[0]
+        return Session.SDO_URL + created_news_link
 
     def grade_student(self, student_url, ball):
         grading = {  # Grading settings
@@ -72,7 +78,8 @@ class Session:
               lesson_id + '/subject_id/' + subject_id + '/referer_redirect/1'
         self.sdo.post(url, payload=payload, headers=headers)
 
-    def make_topic(self, title, text, forum_url):
+    def make_topic(self, title: str, text: str, subject_id: str):
         payload = {'title': title, 'text': text}
-        headers = Session.get_headers(forum_url)
-        return self.sdo.post(forum_url + '/0/newtheme/create', data=payload, headers=headers)
+        url = Session.SDO_URL + '/forum/subject/subject/' + subject_id
+        headers = Session.get_headers(url)
+        return self.sdo.post(url + '/0/newtheme/create', data=payload, headers=headers)
