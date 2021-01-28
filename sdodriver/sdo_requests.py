@@ -41,6 +41,13 @@ class Session:
             raise SystemExit('Tutor mode failed. Try again later.')
 
     def make_news(self, announce: str, message: str, subject_id: str) -> str:
+        """Creating news in the course (sdo.rgsu.net -> Services -> News).
+
+        :param announce: title of news
+        :param message: body of news
+        :param subject_id: course id as string
+        :return: url of created news record
+        """
         url = '/news/index/new/subject/subject/subject_id/' + subject_id
         payload = {'id': 0,
                    'cancelUrl': url,
@@ -67,11 +74,19 @@ class Session:
         self.sdo_post(student_url, grading)
 
     def set_attendance(self, subject_id: str, lesson_id: str, date_id: str, j_type: int, date: str, user_ids: list):
-        """
-        Fill journal of students attendance
+        """Fill journal of students attendance
+
+        :param subject_id: course id
+        :param lesson_id: id of journal (it can be lecture for example) in the course
+        :param date_id: id of column in journal
+        :param j_type: integer internal identifier of journal
+        :param date: string in format DD.MM.YYYY it will be written in column head
+        :param user_ids: list of id of students to set attendance in journal
+        :return: None
         """
         payload = {"journal_type": j_type, f"day_old_{date_id}": date}
         [payload.setdefault(f"isBe_user_{user_id}_{date_id}", 1) for user_id in user_ids]
+
         headers = Session.get_headers('https://sdo.rgsu.net/journal/laboratory/extended/lesson_id/' +
                                       lesson_id + '/subject_id/' + subject_id)
         url = 'https://sdo.rgsu.net/journal/storage/save/lesson_id/' + \
@@ -79,6 +94,13 @@ class Session:
         self.sdo.post(url, payload=payload, headers=headers)
 
     def make_topic(self, title: str, text: str, subject_id: str):
+        """Creating new forum topic in the course (sdo.rgsu.net -> Services -> Forum).
+
+        :param title: title of forum topic
+        :param text: body of forum topic
+        :param subject_id: course id as string
+        :return: request response
+        """
         payload = {'title': title, 'text': text}
         url = Session.SDO_URL + '/forum/subject/subject/' + subject_id
         headers = Session.get_headers(url)
