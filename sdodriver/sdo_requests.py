@@ -9,15 +9,15 @@ class Session:
     def get_headers(referer='https://sdo.rgsu.net/') -> dict:
         return {  # HTTP headers for sdo.rgsu.net
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0',
-            'Accept': '*/*',
+            'Accept': 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'X-Requested-With': 'XMLHttpRequest',
             'Origin': Session.SDO_URL,
             'Connection': 'keep-alive',
             'Referer': referer}
 
-    def sdo_post(self, url: str, payload: dict):
-        return self.sdo.post(url, data=payload, headers=Session.get_headers(url))
+    def sdo_post(self, url: str, payload: dict, stream=False):
+        return self.sdo.post(url, data=payload, headers=Session.get_headers(url), stream=stream)
 
     def __init__(self, login: str, password: str):
         LOGIN_URL = 'https://sdo.rgsu.net/index/authorization/role/guest/mode/view/name/Authorization'
@@ -73,25 +73,20 @@ class Session:
         }
         self.sdo_post(student_url, grading)
 
-    def set_attendance(self, subject_id: str, lesson_id: str, date_id: str, j_type: int, date: str, user_ids: list):
+    def set_attendance(self, action_url: str, date_id: str, j_type: int, date: str, user_ids):
         """Fill journal of students attendance
 
-        :param subject_id: course id
-        :param lesson_id: id of journal (it can be lecture for example) in the course
+        :param action_url: relative url to post action of the journal
         :param date_id: id of column in journal
         :param j_type: integer internal identifier of journal
         :param date: string in format DD.MM.YYYY it will be written in column head
-        :param user_ids: list of id of students to set attendance in journal
-        :return: None
+        :param user_ids: list or set of id of students to set attendance in journal
+        :return: Response
         """
         payload = {"journal_type": j_type, f"day_old_{date_id}": date}
         [payload.setdefault(f"isBe_user_{user_id}_{date_id}", 1) for user_id in user_ids]
-
-        headers = Session.get_headers('https://sdo.rgsu.net/journal/laboratory/extended/lesson_id/' +
-                                      lesson_id + '/subject_id/' + subject_id)
-        url = 'https://sdo.rgsu.net/journal/storage/save/lesson_id/' + \
-              lesson_id + '/subject_id/' + subject_id + '/referer_redirect/1'
-        self.sdo.post(url, payload=payload, headers=headers)
+        headers = Session.get_headers('https://sdo.rgsu.net/')
+        return self.sdo.post(self.SDO_URL + action_url, data=payload, headers=headers)
 
     def make_topic(self, title: str, text: str, subject_id: str):
         """Creating new forum topic in the course (sdo.rgsu.net -> Services -> Forum).

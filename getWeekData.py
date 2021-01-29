@@ -90,15 +90,13 @@ def parse_courses(lesson):
         if (lesson['group'] in course_text) and (lesson['discipline'] in course_text):
             # finding link to page of this course
             link = course.xpath('.//div[@id="lesson_title"]/a/@href')[0]
-            course_id = re.search(r'\d+$', link)[0]
-            lesson['id'] = course_id
+            lesson['subject_id'] = re.search(r'\d+$', link)[0]
             # finding link to journal of our lesson_type
-            matches = re.finditer(r'{"CID":' + course_id + r',.*? - (.*?)(?:"|\().*?lesson_id\\/(\d+)',
+            matches = re.finditer(r'{"CID":' + lesson['subject_id'] + r',.*? - (.*?)(?:"|\().*?lesson_id\\/(\d+)',
                                   result.text, re.MULTILINE)
             for match in matches:
                 if lesson['type'][:6] in match.group(1).encode().decode('unicode-escape'):
-                    lesson['journal'] = f'https://sdo.rgsu.net/lesson/execute/index/lesson_id/{match.group(2)}' + \
-                                     f'/subject_id/{course_id}/day/all'
+                    lesson['lesson_id'] = match.group(2)
                     break
             progress += 1
             s = int(50 * progress / len(timetable) + 0.5)

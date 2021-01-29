@@ -166,80 +166,39 @@ for les_data in report_data:
             for comment in comments:
                 comment_date = datetime.fromisoformat(comment.xpath('.//time/@datetime')[0])
                 if les_data['time'] <= comment_date <= les_data['time'] + timedelta(hours=1, minutes=30):
-                    comment_user_url = comment.xpath('.//a/@href')[0]
-                    user_id = re.search(r'(?<=user_id/)\d+', comment_user_url)[0]
+                    user_id = comment.xpath('.//a/@data-user-id')[0]
                     les_data['group_a'].add(user_id)
             break
 
 # =============================================================================
 # Let's go to attendance page of current lesson type
 # =============================================================================
-mymes('Login on [sdo.rgsu.net]', 0, False)
-driver.open_sdo(login, password)  # TODO remove this after refactoring
-
-prev_group = ''
 for les_data in report_data:
-    if les_data['group'] != prev_group:
-        driver.get(les_data['journal'])
-        prev_group = les_data['group']
-        mymes('Loading attendance journal', 1)
-        # ######### Preparing journal for parsing and filling up #######################################################
-        # Open drop-down menu
-        try:
-            select_group = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="groupname"]')))
-        except TimeoutException:
-            print(Fore.RED + f"Warning! Can't open attendance journal for {les_data['group']}. It will be skipped.")
-            prev_group = ''  # to re-load page and try next time if this group meet on next step
-            continue
-        # cycle through elements in drop-down list to find our group
-        element = select_group.find_elements_by_tag_name("option")  # groups in drop-down menu
-        if len(element) > 2:  # if only one group in journal drop-down menu then this step will be skipped:
-            for list_item in element:  # select group in menu:
-                if les_data['group'] in list_item.text:
-                    select_group.click()  # click dropdown list
-                    list_item.click()  # click group
-                    break
-            driver.find_element_by_xpath('//*[@id="marksheet-form-filters"]/div/div[2]/button').click()  # filter button
-            sleep(1.5)
-    mymes('Filling attendance journal for ' + les_data['group'], 0, False)
-    element = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main"]/div[3]')))
-    driver.scroll_page(element, 1)
-    element.click()  # close menu panel
-    # ######## End of preparation page #############################################################################
-    # Get head of journal table:
-    table_head = driver.find_element_by_xpath('//*[@id="journal"]/table/thead/tr')
-    for cell_head in table_head.find_elements_by_tag_name('th')[1:-2]:
-        id_th_day = cell_head.get_attribute('id')[7:]
+    # Find id of group
+    journal_content = sdo.sdo.get(les_data['journal'], stream=True)
+    journal_content.raw.decode_content = True
+    tree = parse(journal_content.raw)
+    group_id = tree.xpath(f'//select[@name="groupname"]/option[@title="{les_data["group"]}"]/@value')[0]
+    # Parse journal of this group
+    payload = {"groupname": group_id}
+    journal_content = sdo.sdo_post(les_data['journal'], payload=payload, stream=True)
+    journal_content.raw.decode_content = True
+    tree = parse(journal_content.raw)
+    table_head = tree.xpath('//*[@id="journal"]/table/thead/tr/th/@id')
+    for cell_head in table_head:
+        id_th_day = cell_head[7:]
         # Checking column with this id for emptiness. Selecting cell with presence:
-        id_column = driver.find_elements_by_xpath(f'//td[@class="is_be_row_{id_th_day}"]/div/p')
-        for id_cell in id_column:
-            if id_cell.text == 'Был':
-                break
-        else:  # If all column is empty then change date of column and fill it by clicking checkboxes:
-            element = driver.find_element_by_xpath(f'//a[contains(@onclick, "{id_th_day}")]')
-            driver.scroll_page(element, 1)
-            element.click()  # select edit mode of date field
-            element = driver.find_element_by_xpath(f'//input[contains(@id, "{id_th_day}")]')
-            element.send_keys(Keys.BACKSPACE * 10)
-            element.send_keys(les_data['time'].strftime("%d.%m.%Y"))  # Set date for column
-            # Check students in journal and count them
-            for user_id in list(les_data['group_a']):
-                try:
-                    element = driver.find_element_by_xpath(f'//input[@id="isBe_user_{user_id}_{id_th_day}"]')
-                except(TimeoutException, NoSuchElementException):
-                    les_data['group_a'].remove(user_id)
-                    continue
-                driver.scroll_page(element, 1)
-                element.click()
-            break  # Exit cycle by head of table and go to next les_data
-    element = driver.find_element_by_xpath('//*[@id="main"]/div[3]')
-    driver.scroll_page(element, 1)
-    element.click()  # open menu panel
-    element = driver.find_element_by_xpath('//input[@value="Сохранить"]')
-    driver.scroll_page(element, 1)
-    element.click()
-    driver.find_elements_by_xpath('//div/button[1]/span')[0].click()  # /html/body/div[2]/div[3]/div/button[1]/span
-    mymes('Journal is completed', 2)
+        is_be_yes_in_column = tree.xpath(f'//td[@class="is_be_row_{id_th_day}"]/div/p[@class="is-be-yes"]')
+        if not is_be_yes_in_column:
+            break
+    else:
+        print(Fore.RED + 'All columns are filled.')
+        continue
+    check_string = ''.join(tree.xpath('//tbody/tr/td[@class="fio-cell"]/a/@href'))
+    [les_data['group_a'].remove(user_id) for user_id in list(les_data['group_a']) if user_id not in check_string]
+    action_url = tree.xpath('//form[@id="journal"]/@action')[0]
+    j_type = tree.xpath('//input[@id="journal_type"]/@value')[0]
+    sdo.set_attendance(action_url, id_th_day, j_type, les_data['time'].strftime("%d.%m.%Y"), les_data['group_a'])
 
 # =============================================================================
 # Making news
