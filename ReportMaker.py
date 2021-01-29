@@ -17,10 +17,12 @@
 #
 from colorama import Back
 from datetime import timedelta
+from lxml.html import parse
 import os
 import re
 from sdodriver import sdodriver as sdo
 from sdodriver.infoout import *
+from sdodriver.sdo_requests import Session
 from sdodriver.webdav import Cloud
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
@@ -28,7 +30,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 import sys
 from time import sleep
-
 
 login, password, token, video_path, browser, browser_driver_path = map(str.strip, get_settings('settings.txt'))
 
@@ -145,37 +146,37 @@ for les_data in report_data:
 # Let's go to forum and gather students' posts
 # =============================================================================
 mymes('Login on [sdo.rgsu.net]', 0, False)
-driver.open_sdo(login, password)
+sdo = Session(login, password)
 
-prev_group = ''
 for les_data in report_data:
-    if les_data['group'] != prev_group:
-        prev_group = les_data['group']
-        # Go to forum. Take lesson from timetable
-        driver.get(les_data['forum'])
-        mymes('Checking attendance of students', 1, False)
     les_data['group_a'] = set()  # for adding students id that was on the lesson
-    # Parse students
-    topics = driver.find_elements_by_xpath('//li[@class="topic topic-text-loaded"]')
+    forum_content = sdo.sdo.get('https://sdo.rgsu.net/forum/subject/subject/' + les_data['id'], stream=True)
+    forum_content.raw.decode_content = True
+    tree = parse(forum_content.raw)
+    topics = tree.xpath('//*[@class="topic-title"]/a[1]/@href')
     for topic in topics:
-        topic_title = topic.find_element_by_class_name('topic-title').text
+        topic_title = topic.getparent().text_content()
         if (les_data['time'].strftime("%d.%m.%Y") in topic_title) and \
                 (les_data['time'].strftime("%H:%M") in topic_title):
-            element = topic.find_element_by_class_name('topic-expand-comments')
-            driver.scroll_page(element, 1)
-            element.click()  # expand all comments
-            mymes('Opening and gathering messages', 1, False)
-            comments = topic.find_elements_by_class_name('topic-comment-author-and-pubdate')
+            topic_content = sdo.sdo.get(sdo.SDO_URL + topic, stream=True)
+            topic_content.raw.decode_content = True
+            tree = parse(topic_content.raw)
+            comments = tree.xpath('//span[@class="topic-comment-author-and-pubdate"]')
+            # Parse students
             for comment in comments:
-                comment_date = comment.find_element_by_tag_name('time').get_attribute('datetime')
-                comment_date = datetime.fromisoformat(comment_date)
+                comment_date = datetime.fromisoformat(comment.xpath('.//time/@datetime')[0])
                 if les_data['time'] <= comment_date <= les_data['time'] + timedelta(hours=1, minutes=30):
-                    comment_user_url = comment.find_element_by_xpath('.//a').get_attribute('href')
-                    les_data['group_a'].add(re.search(r'(?<=user_id/)\d+', comment_user_url)[0])
+                    comment_user_url = comment.xpath('.//a/@href')[0]
+                    user_id = re.search(r'(?<=user_id/)\d+', comment_user_url)[0]
+                    les_data['group_a'].add(user_id)
+            break
 
 # =============================================================================
 # Let's go to attendance page of current lesson type
 # =============================================================================
+mymes('Login on [sdo.rgsu.net]', 0, False)
+driver.open_sdo(login, password)  # TODO remove this after refactoring
+
 prev_group = ''
 for les_data in report_data:
     if les_data['group'] != prev_group:
@@ -241,7 +242,7 @@ for les_data in report_data:
     mymes('Journal is completed', 2)
 
 # =============================================================================
-# Making news  TODO: rewrite this block using requests
+# Making news
 # =============================================================================
 prev_group = ''
 prev_link = ''
@@ -250,11 +251,6 @@ for les_data in report_data:
         les_data['news_link'] = prev_link
         continue
     if 'news_link' not in les_data:  # if news link is not generated yet:
-        driver.get(les_data['news'])
-        mymes('Loading news page', 2)
-        driver.find_element_by_partial_link_text('Создать новость').click()
-        mymes('Loading news form', 2)
-        driver.find_element_by_tag_name("html").send_keys(Keys.PAGE_DOWN)
         announce = f"Видеоматериалы занятия от {date.strftime('%d.%m.%Y')} с группой {les_data['group']}"
         news_text = f"<p>Занятие от {date.strftime('%d.%m.%Y')} г.:</p><ul>"
         for les_data1 in report_data:
@@ -263,19 +259,9 @@ for les_data in report_data:
                              + les_data1['type'] + ',&nbsp;' + les_data1['time'].strftime("%H:%M") + ' - ' \
                              + (les_data1['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + ')'
         news_text += '</ul>'
-        get_link = driver.wait.until(ec.presence_of_element_located((By.ID, 'announce')))
-        get_link.send_keys(announce)
-        get_link = driver.wait.until(ec.presence_of_element_located((By.ID, 'message_code')))
-        get_link.click()
-        mymes('Loading edit form', 1)
-        driver.switch_to.frame("mce_13_ifr")
-        driver.find_element_by_xpath('//*[@id="htmlSource"]').send_keys(news_text)
-        driver.find_element_by_id('insert').click()
-        driver.switch_to.default_content()
-        driver.find_element_by_id('submit').click()
-        get_link = driver.wait.until(
-            ec.presence_of_element_located((By.XPATH, '//a[contains(text(), "Видеоматериалы занятия от")]')))
-        les_data['news_link'] = get_link.get_attribute('href')
+
+        les_data['news_link'] = sdo.make_news(announce, news_text, les_data['id'])
+
         prev_group = les_data['group']
         prev_link = les_data['news_link']
 
@@ -286,8 +272,9 @@ with open('report.txt', 'w') as f:
     f.write('N  time \tlesson_type \tgroup\t students\tCloud link\tNews link\n')
     f.write('-' * 80 + '\n')
     for les_data in report_data:
-        f.write(f"{les_data['pair']}  {les_data['time'].strftime('%H:%M')}\t{les_data['type']} " +
-                f"{les_data['group']}\t{len(les_data['group_a'])}\n{les_data['video']}\n{les_data['news_link']}\n\n")
+        f.write(f"{les_data['pair']}  {les_data['time'].strftime('%H:%M')}\t{les_data['type']} "
+                f"{les_data['group']}\t{len(les_data['group_a'])}\n"
+                f"{les_data['video']}\n{les_data['news_link']}\n\n")
 # =============================================================================
 # Open timetable page to write report  TODO: rewrite this block using requests
 # =============================================================================
