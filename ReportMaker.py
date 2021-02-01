@@ -24,9 +24,8 @@ from sdodriver import sdodriver as sdo
 from sdodriver.infoout import *
 from sdodriver.sdo_requests import Session
 from sdodriver.webdav import Cloud
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 import sys
 from time import sleep
@@ -192,7 +191,7 @@ for les_data in report_data:
         if not is_be_yes_in_column:
             break
     else:
-        print(Fore.RED + 'All columns are filled.')
+        print(Fore.RED + f"All columns are filled. Can't add attendance for {les_data['group']}. Journal was skipped!")
         continue
     check_string = ''.join(tree.xpath('//tbody/tr/td[@class="fio-cell"]/a/@href'))
     [les_data['group_a'].remove(user_id) for user_id in list(les_data['group_a']) if user_id not in check_string]
@@ -235,20 +234,14 @@ with open('report.txt', 'w') as f:
                 f"{les_data['group']}\t{len(les_data['group_a'])}\n"
                 f"{les_data['video']}\n{les_data['news_link']}\n\n")
 # =============================================================================
-# Open timetable page to write report  TODO: rewrite this block using requests
+# Open timetable page to write report
 # =============================================================================
-driver.get('https://sdo.rgsu.net/timetable/teacher')
-mymes('Report making', 2, False)
+mymes('Report making', 0, False)
 for les_data in report_data:
-    pairs = driver.wait.until(ec.presence_of_all_elements_located((By.CLASS_NAME, 'tt-row')))
-    report_button = pairs[les_data['row']].find_element_by_tag_name('button')
-    driver.scroll_page(report_button, 1)
-    report_button.click()
-    driver.find_element_by_name("users").send_keys(Keys.BACKSPACE + f"{len(les_data['group_a'])}")
-    driver.find_element_by_name("file_path").send_keys(Keys.BACKSPACE + les_data['video'])
-    driver.find_element_by_name("subject_path").send_keys(Keys.BACKSPACE + les_data['news_link'])
-    driver.find_element_by_xpath('//div[@class="ui-dialog-buttonset"]/button[1]').click()
-    mymes('Report for ' + les_data['group'], 2)
+    res = sdo.make_report(les_data['timetable_id'], len(les_data['group_a']), les_data['video'], les_data['news_link'])
+    if not res:
+        print(Fore.RED + "Report record failed.",
+              les_data['time'].strftime('%H:%M'), les_data['discipline'], les_data['group'])
 
 print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + 'report.txt')
 driver.turnoff()

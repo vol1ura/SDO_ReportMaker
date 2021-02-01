@@ -16,7 +16,6 @@
 # Lesser General Public License for more details.
 #
 from colorama import Fore, Back
-from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import pickle
 import re
@@ -50,13 +49,14 @@ result.raw.decode_content = True
 tree = parse(result.raw)
 rows = tree.xpath('//tr[@class="tt-row"]')
 timetable = []  # array of data
-for i, row in enumerate(rows):
+for row in rows:
     # Read lines, parse discipline, time, date and type
     cells = row.xpath('.//td/text()')
     discipline = re.sub(r'\s?\d{2}.\d{2}.(\d{2}|\d{4});?', '', cells[2]).strip()
     cell_date = begin_date + timedelta(WEEKDAYS[cells[6].strip()])
     cell_date = cell_date.replace(hour=int(cells[0].strip()[:2]),
                                   minute=int(cells[0].strip()[3:5]), second=0, microsecond=0)
+    timetable_id = int(row.xpath('.//td[9]/button/@data-timetable_id')[0])
     # counting lesson number for each day int timetable:
     if (len(timetable) == 0) or (timetable[-1]['time'].day != cell_date.day):
         pair_n = 1  # reset counter to 1 every new day
@@ -66,70 +66,38 @@ for i, row in enumerate(rows):
         else:
             pair_n = timetable[-1]['pair'] + 1
     # Append collected data to the end of list report_data:
-    timetable.append({'row': i, 'time': cell_date, 'pair': pair_n, 'group': cells[3].strip(),
-                      'type': cells[4].strip(), 'discipline': discipline})
+    timetable.append({'time': cell_date, 'pair': pair_n, 'group': cells[3].strip(),
+                      'type': cells[4].strip(), 'discipline': discipline, 'timetable_id': timetable_id})
 
 # =============================================================================
 # Go to "My Courses" page - it downloads very long !!!
 # =============================================================================
-print('Page parsing. Please, wait...')
+print('Downloading My courses page. Please, wait...')
 result = session.sdo.get(tree.xpath('//div[@class="wrapper"]/ul/li[2]/a/@href')[0])
 tree = fromstring(result.text)
 courses = tree.xpath('//*[@class="lesson_table"]')
 
-
-def parse_courses(lesson):
-    """Find group in All courses table, parse link to course and get links to forum, to news page and to journal
-
-    :param lesson: dictionary with lesson data
-    """
-    global progress, courses
+for lesson in list(timetable):
     for course in courses:
         course_text = course.xpath('.//*[@class="lesson_options"]')[0].text_content()
         # checking that left table pane contains our group:
         if (lesson['group'] in course_text) and (lesson['discipline'] in course_text):
-            # finding link to page of this course
+            # search link to page of this course
             link = course.xpath('.//div[@id="lesson_title"]/a/@href')[0]
             lesson['subject_id'] = re.search(r'\d+$', link)[0]
-            # finding link to journal of our lesson_type
+            # search link to journal of our lesson_type
             matches = re.finditer(r'{"CID":' + lesson['subject_id'] + r',.*? - (.*?)(?:"|\().*?lesson_id\\/(\d+)',
                                   result.text, re.MULTILINE)
             for match in matches:
                 if lesson['type'][:6] in match.group(1).encode().decode('unicode-escape'):
                     lesson['lesson_id'] = match.group(2)
                     break
-            progress += 1
-            s = int(50 * progress / len(timetable) + 0.5)
-            print('\rProgress: |' + Back.BLUE + '#' * s + Back.WHITE +
-                  ' ' * (50 - s) + Back.RESET + f'| {2 * s:>4}%', end='')
             break
     else:  # in case of error of sdo - group is missing in list My courses - remove this group from the list
         print(Fore.RED + '\rWarning! Group ' + lesson['group'] + ' is missing in your list "My courses".\n' +
               Fore.RESET + 'You need to address to technical support. Restart program after solving this problem. ' +
               'Now this group will be removed from data file and process will continue.')
         timetable.remove(lesson)
-
-
-print('Progress: |' + Back.WHITE + ' ' * 50 + Back.RESET + '|   0%', end='')
-progress = 0
-with ThreadPoolExecutor(8) as executor:
-    executor.map(parse_courses, list(timetable))
-print('\rProgress: |' + Back.BLUE + '#' * 50 + Back.RESET + '| ' + Fore.GREEN + '100% ')
-
-# Counting number of lessons with group in one day
-for i in range(len(timetable)):
-    if 'group_n' not in timetable[i]:
-        group_n = 1
-        j = i + 1
-        while (j < len(timetable)) and (timetable[i]['time'].day == timetable[j]['time'].day):
-            if timetable[i]['group'] == timetable[j]['group']:
-                group_n += 1  # counting through each day
-            j += 1
-        j = i
-        while (j < len(timetable)) and (timetable[i]['time'].day == timetable[j]['time'].day):
-            if timetable[i]['group'] == timetable[j]['group']:
-                timetable[j]['group_n'] = group_n  # then write the counter to every group record
-            j += 1
 
 f_name = f'sdoweek_{begin_date.strftime("%d_%m_%y")}.dat'
 with open(f_name, 'wb') as f:

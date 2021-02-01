@@ -16,11 +16,11 @@ class Session:
             'Connection': 'keep-alive',
             'Referer': referer}
 
-    def sdo_post(self, url: str, payload: dict, stream=False):
-        return self.sdo.post(url, data=payload, headers=Session.get_headers(url), stream=stream)
+    def sdo_post(self, url: str, payload: dict, action='', stream=False):
+        return self.sdo.post(url+action, data=payload, headers=Session.get_headers(url), stream=stream)
 
     def __init__(self, login: str, password: str):
-        LOGIN_URL = 'https://sdo.rgsu.net/index/authorization/role/guest/mode/view/name/Authorization'
+        login_url = 'https://sdo.rgsu.net/index/authorization/role/guest/mode/view/name/Authorization'
         payload = {
             "start_login": 1,
             "login": login,
@@ -28,7 +28,7 @@ class Session:
         }
         self.sdo = requests.session()
         # Perform login
-        result = self.sdo_post(LOGIN_URL, payload)
+        result = self.sdo_post(login_url, payload)
         if result.ok and ('Пользователь успешно авторизован.' in result.text):
             print('Login OK!')
         else:
@@ -85,8 +85,7 @@ class Session:
         """
         payload = {"journal_type": j_type, f"day_old_{date_id}": date}
         [payload.setdefault(f"isBe_user_{user_id}_{date_id}", 1) for user_id in user_ids]
-        headers = Session.get_headers('https://sdo.rgsu.net/')
-        return self.sdo.post(self.SDO_URL + action_url, data=payload, headers=headers)
+        return self.sdo_post(self.SDO_URL, action=action_url, payload=payload)
 
     def make_topic(self, title: str, text: str, subject_id: str):
         """Creating new forum topic in the course (sdo.rgsu.net -> Services -> Forum).
@@ -98,5 +97,24 @@ class Session:
         """
         payload = {'title': title, 'text': text}
         url = Session.SDO_URL + '/forum/subject/subject/' + subject_id
-        headers = Session.get_headers(url)
-        return self.sdo.post(url + '/0/newtheme/create', data=payload, headers=headers)
+        return self.sdo_post(url, action='/0/newtheme/create', payload=payload)
+
+    def make_report(self, timetable_id: int, n: int, video_link: str, news_link: str) -> bool:
+        """Making report record about lesson
+
+        :param timetable_id: integer identifier of report table
+        :param n: number of students on the lesson
+        :param video_link: url to shared video
+        :param news_link: url to news topic
+        :return: True if adding of report record was successful and False if failed
+        """
+        url = 'https://sdo.rgsu.net/timetable/teacher'
+        payload = {"timetable_id": timetable_id,
+                   "users": n,
+                   "file_path": video_link,
+                   "subject_path": news_link}
+        response = self.sdo_post(url, action='/save-additional', payload=payload)
+        if response.json()['message'] == "Сохранено":
+            return True
+        else:
+            return False
