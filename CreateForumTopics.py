@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# ========================== Version 3.32 =====================================
+# ========================== Version 3.33 =====================================
 # CreateForumTopics  - Generate topics on sdo.rgsu.net for checking students
 # Copyright (c) 2020 Yuriy Volodin volodinjuv@rgsu.net
 #

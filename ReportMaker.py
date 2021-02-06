@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# ==================== Version 3.32 =================================
+# ==================== Version 3.33 =================================
 # ReportMaker - make teacher's report on SDO.RSSU.NET.
 # Copyright (c) 2020 Yuriy Volodin, volodinjuv@rgsu.net
 #
@@ -116,7 +116,9 @@ if len(local_paths) > 0:
             attr = element.get_attribute('data-original-title')
             inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
         except (KeyError, TypeError):
-            raise SystemExit('Failed to start files upload. Please, restart the script.')
+            driver.turnoff()
+            raise SystemExit('Failed to start files upload. Please, restart the script. '
+                             'You can also try to upload files manually.')
         print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + f'| {inf:>26}', end='')
         sleep(0.8)
     print('')
@@ -138,6 +140,8 @@ for b in share_buttons:
     link_button = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//ul[@class="sharing-link-list"]/li/a')))
     video_links.append(link_button.get_attribute('href').strip())  # add link
 
+driver.turnoff()
+
 for les_data in report_data:
     les_data['video'] = video_links[les_data['pair'] - 1]
 
@@ -147,9 +151,10 @@ for les_data in report_data:
 mymes('Login on [sdo.rgsu.net]', 0, False)
 sdo = Session(login, password)
 
+mymes("Processing students' marks on the forum ", 0, False)
 for les_data in report_data:
     les_data['group_a'] = set()  # for adding students id that was on the lesson
-    forum_content = sdo.sdo.get('https://sdo.rgsu.net/forum/subject/subject/' + les_data['id'], stream=True)
+    forum_content = sdo.sdo.get('https://sdo.rgsu.net/forum/subject/subject/' + les_data['subject_id'], stream=True)
     forum_content.raw.decode_content = True
     tree = parse(forum_content.raw)
     topics = tree.xpath('//*[@class="topic-title"]/a[1]/@href')
@@ -172,15 +177,18 @@ for les_data in report_data:
 # =============================================================================
 # Let's go to attendance page of current lesson type
 # =============================================================================
+mymes('Filling attendance journals', 0, False)
 for les_data in report_data:
     # Find id of group
-    journal_content = sdo.sdo.get(les_data['journal'], stream=True)
+    journal_url = "https://sdo.rgsu.net/lesson/execute/index" \
+                  f"/lesson_id/{les_data['lesson_id']}/subject_id/{les_data['subject_id']}/day/all"
+    journal_content = sdo.sdo.get(journal_url, stream=True)
     journal_content.raw.decode_content = True
     tree = parse(journal_content.raw)
     group_id = tree.xpath(f'//select[@name="groupname"]/option[@title="{les_data["group"]}"]/@value')[0]
     # Parse journal of this group
     payload = {"groupname": group_id}
-    journal_content = sdo.sdo_post(les_data['journal'], payload=payload, stream=True)
+    journal_content = sdo.sdo_post(journal_url, payload=payload, stream=True)
     journal_content.raw.decode_content = True
     tree = parse(journal_content.raw)
     table_head = tree.xpath('//*[@id="journal"]/table/thead/tr/th/@id')
@@ -202,6 +210,7 @@ for les_data in report_data:
 # =============================================================================
 # Making news
 # =============================================================================
+mymes('Making news', 0, False)
 prev_group = ''
 prev_link = ''
 for les_data in report_data:
@@ -218,7 +227,7 @@ for les_data in report_data:
                              + (les_data1['time'] + timedelta(hours=1, minutes=30)).strftime("%H:%M") + ')'
         news_text += '</ul>'
 
-        les_data['news_link'] = sdo.make_news(announce, news_text, les_data['id'])
+        les_data['news_link'] = sdo.make_news(announce, news_text, les_data['subject_id'])
 
         prev_group = les_data['group']
         prev_link = les_data['news_link']
@@ -231,18 +240,18 @@ with open('report.txt', 'w') as f:
     f.write('-' * 80 + '\n')
     for les_data in report_data:
         f.write(f"{les_data['pair']}  {les_data['time'].strftime('%H:%M')}\t{les_data['type']} "
-                f"{les_data['group']}\t{len(les_data['group_a'])}\n"
+                f"{les_data['group']}\t{len(les_data['group_a'])}\t"
                 f"{les_data['video']}\n{les_data['news_link']}\n\n")
 # =============================================================================
 # Open timetable page to write report
 # =============================================================================
 mymes('Report making', 0, False)
 for les_data in report_data:
-    res = sdo.make_report(les_data['timetable_id'], len(les_data['group_a']), les_data['video'], les_data['news_link'])
+    res = sdo.make_report(les_data['timetable_id'], len(les_data['group_a']),
+                          les_data['video'], les_data['news_link'])
     if not res:
         print(Fore.RED + "Report record failed.",
               les_data['time'].strftime('%H:%M'), les_data['discipline'], les_data['group'])
 
 print(Fore.GREEN + 'All work is done! See program report in ' + Fore.CYAN + 'report.txt')
-driver.turnoff()
 # input('press enter...')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# ========================== Version 3.32 ==============================================
+# ========================== Version 3.33 ==============================================
 # getWeekData  - Generate csv file with timetable data
 # Copyright (c) 2020 Yuriy Volodin volodinjuv@rgsu.net
 #
@@ -38,7 +38,7 @@ else:
 # List of days in the week
 while begin_date.isoweekday() != 1:
     begin_date -= timedelta(1)
-print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
+print('Begin of the week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y (%A)"))  # begin of week
 WEEKDAYS = {'Понедельник': 0, 'Вторник': 1, 'Среда': 2, 'Четверг': 3, 'Пятница': 4, 'Суббота': 5}
 
 # =============================================================================

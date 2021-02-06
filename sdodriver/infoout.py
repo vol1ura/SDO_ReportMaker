@@ -11,9 +11,9 @@ def mymes(mes: str, d: float, plus_mark=True):
     """
     Information output to console. If plus_mark is False then the ending plus is not typing.
 
-    :param mes: str
-    :param d: float
-    :param plus_mark: bool
+    :param mes: message string
+    :param d: float - time to pause and dots output
+    :param plus_mark: bool - make [+] mark
     """
     k = 80 - len(mes) - 6
     print(mes + '...', end='')
@@ -30,8 +30,8 @@ def get_settings(f_name: str):
     """
     Function for reading settings files and get data as list of strings.
 
-    :param f_name: str
-    :return: list
+    :param f_name: name of file with settings
+    :return: list of lines
     """
     try:
         with open(f_name, encoding='utf8') as f:
