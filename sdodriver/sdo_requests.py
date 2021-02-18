@@ -2,7 +2,7 @@ import requests
 from lxml.html import parse
 
 
-class Session:
+class PortalRGSU:
     SDO_URL = 'https://sdo.rgsu.net'
 
     @staticmethod
@@ -12,12 +12,9 @@ class Session:
             'Accept': 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'X-Requested-With': 'XMLHttpRequest',
-            'Origin': Session.SDO_URL,
+            'Origin': PortalRGSU.SDO_URL,
             'Connection': 'keep-alive',
             'Referer': referer}
-
-    def sdo_post(self, url: str, payload: dict, action='', stream=False):
-        return self.sdo.post(url+action, data=payload, headers=Session.get_headers(url), stream=stream)
 
     def __init__(self, login: str, password: str):
         login_url = 'https://sdo.rgsu.net/index/authorization/role/guest/mode/view/name/Authorization'
@@ -34,11 +31,14 @@ class Session:
         else:
             raise SystemExit('Login failed! Check settings.')
         # Tutor mode on
-        result = self.sdo.get('https://sdo.rgsu.net/switch/role/tutor', headers=Session.get_headers())
+        result = self.sdo.get('https://sdo.rgsu.net/switch/role/tutor', headers=PortalRGSU.get_headers())
         if result.ok:
             print('Tutor mode ON!')
         else:
             raise SystemExit('Tutor mode failed. Try again later.')
+
+    def sdo_post(self, url: str, payload: dict, action='', stream=False):
+        return self.sdo.post(url + action, data=payload, headers=PortalRGSU.get_headers(url), stream=stream)
 
     def make_news(self, announce: str, message: str, subject_id: str) -> str:
         """Creating news in the course (sdo.rgsu.net -> Services -> News).
@@ -57,12 +57,12 @@ class Session:
                    'message': message,
                    'submit': 'Сохранить'
                    }
-        result = self.sdo_post(Session.SDO_URL + url, payload)
+        result = self.sdo_post(PortalRGSU.SDO_URL + url, payload)
         result = self.sdo.get(result.url.replace('/ajax/true', ''), stream=True)
         result.raw.decode_content = True
         tree = parse(result.raw)
         created_news_link = tree.xpath('//div[@class="news-title"]/a/@href')[0]
-        return Session.SDO_URL + created_news_link
+        return PortalRGSU.SDO_URL + created_news_link
 
     def grade_student(self, student_url, ball):
         grading = {  # Grading settings
@@ -96,7 +96,7 @@ class Session:
         :return: request response
         """
         payload = {'title': title, 'text': text}
-        url = Session.SDO_URL + '/forum/subject/subject/' + subject_id
+        url = PortalRGSU.SDO_URL + '/forum/subject/subject/' + subject_id
         return self.sdo_post(url, action='/0/newtheme/create', payload=payload)
 
     def make_report(self, timetable_id: int, n: int, video_link: str, news_link: str) -> bool:
@@ -114,7 +114,26 @@ class Session:
                    "file_path": video_link,
                    "subject_path": news_link}
         response = self.sdo_post(url, action='/save-additional', payload=payload)
-        if response.json()['message'] == "Сохранено":
+        if response.json().get('message') == "Сохранено":
             return True
         else:
             return False
+
+
+def get_table_id(portal: PortalRGSU, lessons: list):
+    WEEKDAYS = {'Понедельник': 1, 'Вторник': 2, 'Среда': 3, 'Четверг': 4, 'Пятница': 5, 'Суббота': 6}
+    timetable_link = 'https://sdo.rgsu.net/timetable/teacher'
+    result = portal.sdo.get(timetable_link, stream=True)
+    result.raw.decode_content = True
+    tree = parse(result.raw)
+    rows = tree.xpath('//tr[@class="tt-row"]')
+    for lesson in lessons:
+        for row in rows:
+            # Read lines, parse weekday, time and group
+            cells = row.xpath('.//td/text()')
+            if lesson['time'].isoweekday() == WEEKDAYS[cells[6].strip()] and \
+                    lesson['time'].hour == int(cells[0].strip()[:2]) and \
+                    lesson['time'].minute == int(cells[0].strip()[3:5]) and \
+                    lesson['group'] == cells[3].strip():
+                lesson['timetable_id'] = int(row.xpath('.//td[9]/button/@data-timetable_id')[0])
+    return lessons

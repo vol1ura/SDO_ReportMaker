@@ -42,7 +42,7 @@ python CreateForumTopics.py
 ```bash
 python CreateForumTopics.py n
 ```
-пре этом уже *должен быть сформирован* соответствующий `dat` файл (см. выше).
+при этом уже *должен быть сформирован* соответствующий `dat` файл (см. выше).
 
 В созданных темах студенты производят отметку о присутствии, а преподаватель визуально контролирует отметку и подключение студента к видеоконференции. Время отметки должно быть строго во временном промежутке соответствующего занятия. Лишние отметки, а также отметки в другое время не учитываются при подсчёте числа посещений и в журнал не проставляются (за это отвечает скрипт `ReportMaker.py`).
 
@@ -86,7 +86,7 @@ python CreateForumTopics.py n
 ###### Ссылки для загрузки драйвера
 1. geckodriver доступен здесь [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
 2. chromedriver доступен здесь [https://sites.google.com/a/chromium.org/chromedriver/home](https://sites.google.com/a/chromium.org/chromedriver/home)
-3. msedgedriver доступун здесь [https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/)
+3. msedgedriver доступен здесь [https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/)
 4. safaridriver доступен здесь [https://webkit.org/blog/6900/webdriver-support-in-safari-10/](https://webkit.org/blog/6900/webdriver-support-in-safari-10/)
 
 ### Настройка интерпретатора Python

@@ -1,20 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# ==================== Version 3.33 =================================
+# ==================== Version 3.33 ===========================================
 # ReportMaker - make teacher's report on SDO.RSSU.NET.
-# Copyright (c) 2020 Yuriy Volodin, volodinjuv@rgsu.net
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
+# 2020-2021 Yuriy Volodin, volodinjuv@rgsu.net
+# =============================================================================
 from colorama import Back
 from datetime import timedelta
 from lxml.html import parse
@@ -22,7 +12,7 @@ import os
 import re
 from sdodriver import sdodriver as sdo
 from sdodriver.infoout import *
-from sdodriver.sdo_requests import Session
+from sdodriver.sdo_requests import PortalRGSU, get_table_id
 from sdodriver.webdav import Cloud
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -118,7 +108,7 @@ if len(local_paths) > 0:
         except (KeyError, TypeError):
             driver.turnoff()
             raise SystemExit('Failed to start files upload. Please, restart the script. '
-                             'You can also try to upload files manually.')
+                             'If this error repeats, try to upload files manually.')
         print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + f'| {inf:>26}', end='')
         sleep(0.8)
     print('')
@@ -149,9 +139,9 @@ for les_data in report_data:
 # Let's go to forum and gather students' posts
 # =============================================================================
 mymes('Login on [sdo.rgsu.net]', 0, False)
-sdo = Session(login, password)
+sdo = PortalRGSU(login, password)
 
-mymes("Processing students' marks on the forum ", 0, False)
+mymes("Processing students' marks on the forum", 0, False)
 for les_data in report_data:
     les_data['group_a'] = set()  # for adding students id that was on the lesson
     forum_content = sdo.sdo.get('https://sdo.rgsu.net/forum/subject/subject/' + les_data['subject_id'], stream=True)
@@ -246,6 +236,8 @@ with open('report.txt', 'w') as f:
 # Open timetable page to write report
 # =============================================================================
 mymes('Report making', 0, False)
+report_data = get_table_id(sdo, report_data)
+
 for les_data in report_data:
     res = sdo.make_report(les_data['timetable_id'], len(les_data['group_a']),
                           les_data['video'], les_data['news_link'])

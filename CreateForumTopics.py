@@ -1,24 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# ========================== Version 3.33 =====================================
-# CreateForumTopics  - Generate topics on sdo.rgsu.net for checking students
-# Copyright (c) 2020 Yuriy Volodin volodinjuv@rgsu.net
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
+# ==================== Version 3.33 ===========================================
+# ReportMaker - make teacher's report on SDO.RSSU.NET.
+# 2020-2021 Yuriy Volodin, volodinjuv@rgsu.net
 # =============================================================================
 from colorama import Back
 from datetime import timedelta
 from sdodriver.infoout import *
-from sdodriver.sdo_requests import Session
+from sdodriver.sdo_requests import PortalRGSU
 import sys
 
 
@@ -33,7 +23,7 @@ print('Begin of week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%m/%Y
 approve('This program will create forum topics.')
 
 SETTINGS = get_settings('settings.txt')
-sdo = Session(SETTINGS[0].strip(), SETTINGS[1].strip())
+sdo = PortalRGSU(SETTINGS[0].strip(), SETTINGS[1].strip())
 
 # =============================================================================
 # Create forum topics for all groups in timetable

@@ -1,32 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# ========================== Version 3.33 ==============================================
-# getWeekData  - Generate csv file with timetable data
-# Copyright (c) 2020 Yuriy Volodin volodinjuv@rgsu.net
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
+# ==================== Version 3.33 ===========================================
+# ReportMaker - make teacher's report on SDO.RSSU.NET.
+# 2020-2021 Yuriy Volodin, volodinjuv@rgsu.net
+# =============================================================================
 from colorama import Fore, Back
 from datetime import datetime, timedelta
 import pickle
 import re
 from lxml.html import fromstring, parse
 from sdodriver.infoout import get_settings
-from sdodriver.sdo_requests import Session
+from sdodriver.sdo_requests import PortalRGSU
 import sys
 
 
-login, password, _, _, _, _ = map(str.strip, get_settings('settings.txt'))
-session = Session(login, password)
+SETTINGS = get_settings('settings.txt')
+sdo = PortalRGSU(SETTINGS[0].strip(), SETTINGS[1].strip())
 
 begin_date = datetime.now()
 if len(sys.argv) > 1 and sys.argv[1] == 'n':  # if parameter n in command line
@@ -44,7 +34,7 @@ WEEKDAYS = {'Понедельник': 0, 'Вторник': 1, 'Среда': 2, '
 # =============================================================================
 # Go to timetable for the next week and parse it:
 # =============================================================================
-result = session.sdo.get(timetable_link, stream=True)
+result = sdo.sdo.get(timetable_link, stream=True)
 result.raw.decode_content = True
 tree = parse(result.raw)
 rows = tree.xpath('//tr[@class="tt-row"]')
@@ -56,7 +46,6 @@ for row in rows:
     cell_date = begin_date + timedelta(WEEKDAYS[cells[6].strip()])
     cell_date = cell_date.replace(hour=int(cells[0].strip()[:2]),
                                   minute=int(cells[0].strip()[3:5]), second=0, microsecond=0)
-    timetable_id = int(row.xpath('.//td[9]/button/@data-timetable_id')[0])
     # counting lesson number for each day int timetable:
     if (len(timetable) == 0) or (timetable[-1]['time'].day != cell_date.day):
         pair_n = 1  # reset counter to 1 every new day
@@ -67,13 +56,13 @@ for row in rows:
             pair_n = timetable[-1]['pair'] + 1
     # Append collected data to the end of list report_data:
     timetable.append({'time': cell_date, 'pair': pair_n, 'group': cells[3].strip(),
-                      'type': cells[4].strip(), 'discipline': discipline, 'timetable_id': timetable_id})
+                      'type': cells[4].strip(), 'discipline': discipline})
 
 # =============================================================================
 # Go to "My Courses" page - it downloads very long !!!
 # =============================================================================
 print('Downloading My courses page. Please, wait...')
-result = session.sdo.get(tree.xpath('//div[@class="wrapper"]/ul/li[2]/a/@href')[0])
+result = sdo.sdo.get(tree.xpath('//div[@class="wrapper"]/ul/li[2]/a/@href')[0])
 tree = fromstring(result.text)
 courses = tree.xpath('//*[@class="lesson_table"]')
 
