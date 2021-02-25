@@ -32,7 +32,7 @@ print('Begin of the week: ', Fore.BLACK + Back.GREEN + begin_date.strftime("%d/%
 WEEKDAYS = {'Понедельник': 0, 'Вторник': 1, 'Среда': 2, 'Четверг': 3, 'Пятница': 4, 'Суббота': 5}
 
 # =============================================================================
-# Go to timetable for the next week and parse it:
+# Go to the timetable and parse it:
 # =============================================================================
 result = sdo.sdo.get(timetable_link, stream=True)
 result.raw.decode_content = True
@@ -42,6 +42,8 @@ timetable = []  # array of data
 for row in rows:
     # Read lines, parse discipline, time, date and type
     cells = row.xpath('.//td/text()')
+    # Lesson is online if there is no cabinet number:
+    lesson_online = True if not cells[1].strip() else False
     discipline = re.sub(r'\s?\d{2}.\d{2}.(\d{2}|\d{4});?', '', cells[2]).strip()
     cell_date = begin_date + timedelta(WEEKDAYS[cells[6].strip()])
     cell_date = cell_date.replace(hour=int(cells[0].strip()[:2]),
@@ -56,7 +58,7 @@ for row in rows:
             pair_n = timetable[-1]['pair'] + 1
     # Append collected data to the end of list report_data:
     timetable.append({'time': cell_date, 'pair': pair_n, 'group': cells[3].strip(),
-                      'type': cells[4].strip(), 'discipline': discipline})
+                      'type': cells[4].strip(), 'discipline': discipline, 'online': lesson_online})
 
 # =============================================================================
 # Go to "My Courses" page - it downloads very long !!!

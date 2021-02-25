@@ -195,7 +195,12 @@ for les_data in report_data:
     [les_data['group_a'].remove(user_id) for user_id in list(les_data['group_a']) if user_id not in check_string]
     action_url = tree.xpath('//form[@id="journal"]/@action')[0]
     j_type = tree.xpath('//input[@id="journal_type"]/@value')[0]
-    sdo.set_attendance(action_url, id_th_day, j_type, les_data['time'].strftime("%d.%m.%Y"), les_data['group_a'])
+    sdo.set_attendance(action_url,
+                       id_th_day,
+                       j_type,
+                       les_data['time'].strftime("%d.%m.%Y"),
+                       les_data['online'],
+                       les_data['group_a'])
 
 # =============================================================================
 # Making news

@@ -73,18 +73,21 @@ class PortalRGSU:
         }
         self.sdo_post(student_url, grading)
 
-    def set_attendance(self, action_url: str, date_id: str, j_type: int, date: str, user_ids):
+    def set_attendance(self, action_url: str, date_id: str, j_type: int, date: str, lesson_online: bool, user_ids):
         """Fill journal of students attendance
 
         :param action_url: relative url to post action of the journal
         :param date_id: id of column in journal
         :param j_type: integer internal identifier of journal
         :param date: string in format DD.MM.YYYY it will be written in column head
+        :param lesson_online: True if lesson in online format, False if offline
         :param user_ids: list or set of id of students to set attendance in journal
         :return: Response
         """
         payload = {"journal_type": j_type, f"day_old_{date_id}": date}
         [payload.setdefault(f"isBe_user_{user_id}_{date_id}", 1) for user_id in user_ids]
+        if lesson_online:
+            [payload.setdefault(f"format_attendance_user_{user_id}_{date_id}", 2) for user_id in user_ids]  # online = 2
         return self.sdo_post(self.SDO_URL, action=action_url, payload=payload)
 
     def make_topic(self, title: str, text: str, subject_id: str):
