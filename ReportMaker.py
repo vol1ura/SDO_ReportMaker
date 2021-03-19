@@ -58,13 +58,13 @@ for folder in rem_folders:
 client.free_space()
 
 files = os.listdir(video_path)
-local_paths = ""
+local_paths = ''
 video_count = 0
 for file in files:
     if re.fullmatch(r'Video\d\.\w{2,5}', file):
         video_count += 1
         if not client.check(rem_path + '/' + file):
-            local_paths += video_path + file + "\n"
+            local_paths += video_path + file + '\n'
             print('File [' + Fore.CYAN + file + Fore.RESET + '] will be uploaded.')
         else:
             print('File [' + Fore.CYAN + file + Fore.RESET + '] has already been uploaded and will be skipped.')
@@ -87,16 +87,17 @@ driver = sdo.Driver(browser, browser_driver_path)
 mymes('Open [cloud.rgsu.net] for uploading and sharing files.', 0, False)
 driver.open_cloud(login, password)
 mymes('Authorization', 3)
-
 driver.wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="controls"]')))
+
 driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
 
-if len(local_paths) > 0:
+attempt_to_upload = 0
+if local_paths:
     mymes('Open web folder to start upload', 3, False)
     driver.wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="controls"]')))
 
-    element = driver.find_element_by_xpath('//input[@type="file"]')
-    element.send_keys(local_paths.strip())
+    element_input = driver.find_element_by_xpath('//input[@type="file"]')
+    element_input.send_keys(local_paths.strip())
 
     mymes('Creating tasks for upload', 4)
     while "none" not in driver.find_element_by_id('uploadprogressbar').get_attribute('style'):
@@ -106,14 +107,20 @@ if len(local_paths) > 0:
             attr = element.get_attribute('data-original-title')
             inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
         except (KeyError, TypeError):
+            if attempt_to_upload < 5:
+                element_input.send_keys(local_paths.strip())
+                attempt_to_upload += 1
+                mymes(f'Attempt {attempt_to_upload} to upload failed. I\'ll try once more', 3)
+                continue
             driver.turnoff()
             raise SystemExit('Failed to start files upload. Please, restart the script. '
                              'If this error repeats, try to upload files manually.')
         print('\rProgress: |' + Back.BLUE + '#' * k + Back.RESET + ' ' * (40 - k) + f'| {inf:>26}', end='')
         sleep(0.8)
-    print('')
+    print()
     client.free_space()
-    mymes('Start sharing files', 1, False)
+
+mymes('Start sharing files', 1, False)
 
 video_links = []
 fileList = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))
