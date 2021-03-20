@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# ==================== Version 3.33 ===========================================
+# ==================== Version 3.34 ===========================================
 # ReportMaker - make teacher's report on SDO.RSSU.NET.
 # 2020-2021 Yuriy Volodin, volodinjuv@rgsu.net
 # =============================================================================
@@ -93,13 +93,9 @@ driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
 
 attempt_to_upload = 0
 if local_paths:
-    mymes('Open web folder to start upload', 3, False)
-    driver.wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="controls"]')))
+    mymes('Open web folder to start upload', 4)
+    driver.start_cloud_upload(local_paths)
 
-    element_input = driver.find_element_by_xpath('//input[@type="file"]')
-    element_input.send_keys(local_paths.strip())
-
-    mymes('Creating tasks for upload', 4)
     while "none" not in driver.find_element_by_id('uploadprogressbar').get_attribute('style'):
         element = driver.find_element_by_id('uploadprogressbar')
         try:
@@ -108,9 +104,10 @@ if local_paths:
             inf = re.sub(r'(\d+)(?:,\d)? (?:\w{2} ){2}(\d+)(?:,\d)?', r'\1/\2', attr)
         except (KeyError, TypeError):
             if attempt_to_upload < 5:
-                element_input.send_keys(local_paths.strip())
+                driver.get('https://cloud.rgsu.net/apps/files/?dir=/' + '/'.join(rem_folders))
                 attempt_to_upload += 1
-                mymes(f'Attempt {attempt_to_upload} to upload failed. I\'ll try once more', 3)
+                mymes(f'Attempt {attempt_to_upload} / 5 to upload failed. I\'ll try once more', 3, False)
+                driver.start_cloud_upload(local_paths)
                 continue
             driver.turnoff()
             raise SystemExit('Failed to start files upload. Please, restart the script. '
@@ -120,7 +117,7 @@ if local_paths:
     print()
     client.free_space()
 
-mymes('Start sharing files', 1, False)
+mymes('Start sharing files', 2, False)
 
 video_links = []
 fileList = driver.wait.until(ec.element_to_be_clickable((By.XPATH, '//*[@id="fileList"]')))

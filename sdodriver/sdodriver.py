@@ -68,6 +68,12 @@ class Driver(FFDriver, GCDriver, SDriver):
         self.find_element_by_id('password').send_keys(password)
         self.find_element_by_id('submit-form').click()
 
+    def start_cloud_upload(self, paths):
+        self.wait.until(ec.presence_of_element_located((By.XPATH, '//div[@id="controls"]')))
+        element = self.wait.until(ec.presence_of_element_located((By.XPATH, '//input[@type="file"]')))
+        element.send_keys(paths.strip())
+        sleep(4)
+
     def scroll_page(self, web_element, t=2.0):
         self.execute_script('arguments[0].scrollIntoView({block: "center", inline: "center"})', web_element)
         sleep(t)
