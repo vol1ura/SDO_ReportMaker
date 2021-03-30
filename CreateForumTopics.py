@@ -47,6 +47,7 @@ for i, lesson in enumerate(timetable):
                  '<ul><li><strong>В заголовке:</strong> присутствовал(а)</li>' + \
                  '<li><strong>В сообщении:</strong> присутствовал(а)</li></ul>'
     response = sdo.make_topic(topic_title, topic_text, lesson['subject_id'])
+    sleep(1)  # pause to remote server process request
     if not response.ok:
         print(Back.RED + f"\rCan't create topic for {lesson['group']}, subject_id={lesson['subject_id']}.")
     s = int(50 * (i + 1) / len(timetable) + 0.5)
