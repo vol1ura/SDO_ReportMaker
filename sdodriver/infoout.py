@@ -64,6 +64,23 @@ def read_data(file_date: datetime):
     return timetable
 
 
+def save_report(report_data: list, report_file: str):
+    """
+    Generate and save teacher's report to file.
+
+    :param report_data: list with lessons information
+    :param report_file: where to save the report
+    """
+    with open(report_file, 'w') as f:
+        f.write(' ' * 20 + 'This day you have next lessons\n')
+        f.write('N  time \tlesson_type \tgroup\t students\tCloud link\tNews link\n')
+        f.write('-' * 80 + '\n')
+        for les_data in report_data:
+            f.write(f"{les_data['pair']}  {les_data['time'].strftime('%H:%M')}\t{les_data['type']} "
+                    f"{les_data['group']}\t{len(les_data['group_a'])}\t"
+                    f"{les_data['video']}\n{les_data['news_link']}\n\n")
+
+
 def approve(mes=''):
     while True:
         i = input(mes + (' ' if len(mes) else '') + 'Continue (y/n)?')

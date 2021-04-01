@@ -140,7 +140,7 @@ for les_data in report_data:
     les_data['video'] = video_links[les_data['pair'] - 1]
 
 # =============================================================================
-# Let's go to forum and gather students' posts
+# Let's go to forum and gather students' posts TODO: refactor to class method
 # =============================================================================
 mymes('Login on [sdo.rgsu.net]', 0, False)
 sdo = PortalRGSU(login, password)
@@ -169,7 +169,7 @@ for les_data in report_data:
             break
 
 # =============================================================================
-# Let's go to attendance page of current lesson type
+# Let's go to attendance page of current lesson type TODO: refactor to class method
 # =============================================================================
 mymes('Filling attendance journals', 0, False)
 for les_data in report_data:
@@ -207,7 +207,7 @@ for les_data in report_data:
                        les_data['group_a'])
 
 # =============================================================================
-# Making news
+# Making news TODO: refactor to class method
 # =============================================================================
 mymes('Making news', 0, False)
 prev_group = ''
@@ -233,16 +233,9 @@ for les_data in report_data:
 
 
 # =============================================================================
-with open('report.txt', 'w') as f:
-    f.write(' ' * 20 + 'This day you have next lessons\n')
-    f.write('N  time \tlesson_type \tgroup\t students\tCloud link\tNews link\n')
-    f.write('-' * 80 + '\n')
-    for les_data in report_data:
-        f.write(f"{les_data['pair']}  {les_data['time'].strftime('%H:%M')}\t{les_data['type']} "
-                f"{les_data['group']}\t{len(les_data['group_a'])}\t"
-                f"{les_data['video']}\n{les_data['news_link']}\n\n")
+save_report(report_data, 'report.txt')  # TODO: refactor to class method
 # =============================================================================
-# Open timetable page to write report
+# Open timetable page to write report  # TODO: refactor to class method
 # =============================================================================
 mymes('Report making', 0, False)
 report_data = get_table_id(sdo, report_data)

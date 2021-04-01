@@ -123,6 +123,7 @@ class PortalRGSU:
             return False
 
 
+# TODO: make separate class Timetable and implement this function as a private method
 def get_table_id(portal: PortalRGSU, lessons: list):
     WEEKDAYS = {'Понедельник': 1, 'Вторник': 2, 'Среда': 3, 'Четверг': 4, 'Пятница': 5, 'Суббота': 6}
     timetable_link = 'https://sdo.rgsu.net/timetable/teacher'
