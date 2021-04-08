@@ -171,7 +171,7 @@ for les_data in report_data:
 # =============================================================================
 # Let's go to attendance page of current lesson type TODO: refactor to class method
 # =============================================================================
-mymes('Filling attendance journals', 0, False)
+mymes('Attendance journals filling ', 0, False)
 for les_data in report_data:
     # Find id of group
     journal_url = "https://sdo.rgsu.net/lesson/execute/index" \
